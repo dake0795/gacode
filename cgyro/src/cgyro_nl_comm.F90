@@ -180,15 +180,18 @@ subroutine cgyro_nl_fftw_comm1_async_stress
 
 #if defined(OMPGPU)
 !$omp target teams distribute parallel do simd collapse(4) &
-!$omp&         private(iexch0,itor0,isplit0,iexch_base,h_loc)
+!$omp&         private(iexch0,itor0,isplit0,iexch_base,h_loc) &
+!$omp&         private(iv,is,my_psi)
 #elif defined(_OPENACC)
 !$acc parallel loop collapse(4) gang vector independent &
 !$acc&         private(iexch0,itor0,isplit0,iexch_base,h_loc) &
-!$acc&         present(ic_c,h_x,fpackA,fpackB) &
+!$acc&         private(iv,is,my_psi) &
+!$acc&         present(ic_c,h_x,fpackA,fpackB,field,is_v,jvec_c,z,temp) &
 !$acc&         present(n_theta,nv_loc,nt1,nt2,n_radial,nsplit,nsplitA,nsplitB) default(none)
 #else
 !$omp parallel do collapse(3) &
-!$omp&         private(iexch0,itor0,isplit0,iexch_base,h_loc)
+!$omp&         private(iexch0,itor0,isplit0,iexch_base,h_loc) &
+!$omp&         private(iv,is,my_psi)
 #endif
   do it=1,n_theta
    do iv_loc_m=1,nv_loc
@@ -239,15 +242,19 @@ subroutine cgyro_nl_fftw_comm1_async_stress
 
 #if defined(OMPGPU)
 !$omp target teams distribute parallel do simd collapse(4) &
-!$omp&         private(iexch0,itor0,isplit0,iexch_base,h_loc)
+!$omp&         private(iexch0,itor0,isplit0,iexch_base,h_loc) &
+!$omp&         private(iv,is,my_psi)
 #elif defined(_OPENACC)
 !$acc parallel loop collapse(4) gang vector independent &
 !$acc&         private(iexch0,itor0,isplit0,iexch_base,h_loc) &
+!$acc&         private(iv,is,my_psi) &
+!$acc&         present(ic_c,h_x,fpackA,fpackB,field,is_v,jvec_c,z,temp) &
 !$acc&         present(ic_c,h_x,fpackA) &
 !$acc&         present(n_theta,nv_loc,nt1,nt2,n_radial,nsplit,nsplitA) default(none)
 #else
 !$omp parallel do collapse(3) &
-!$omp&         private(iexch0,itor0,isplit0,iexch_base,h_loc)
+!$omp&         private(iexch0,itor0,isplit0,iexch_base,h_loc) &
+!$omp&         private(iv,is,my_psi)
 #endif
   do it=1,n_theta
    do iv_loc_m=1,nv_loc
