@@ -29,7 +29,7 @@ subroutine cgyro_stress
   ! Not sure if this can be with async given the NL calc set up
   do i_field=1, n_field
      ! Set up first half h_x
-     call cgyro_nl_fftw_comm1_async
+     call cgyro_nl_fftw_comm1_async_stress
 
      ! Set up fields
      call cgyro_nl_fftw_comm2_async_stress(i_field)
