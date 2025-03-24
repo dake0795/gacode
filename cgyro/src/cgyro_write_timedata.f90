@@ -76,6 +76,10 @@ subroutine cgyro_write_timedata
              trim(path)//binfile_triad,&
              size(triad(:,:,:,:)),&
              triad(:,:,:,:))
+      ! Checksum T , T* precision
+      ! Note that checksum is summation at kx=0 pump
+         call write_precision(trim(path)//runfile_prec_tri,2,&
+                   sum(sum(real(triad(:,nx0/2,nt1:nt2,1:2)),dim=1),dim=1))
   endif
 
   if (field_print_flag == 1) then
@@ -105,9 +109,9 @@ subroutine cgyro_write_timedata
   ! Note that checksum is a distributed real scalar
   if (zf_test_mode == 0) then
      ! Do not include exchange in precision
-     call write_precision(trim(path)//runfile_prec,sum(abs(real(gflux(0,:,1:3,:,:)))))
+     call write_precision(trim(path)//runfile_prec,1,[sum(abs(real(gflux(0,:,1:3,:,:))))])
   else
-     call write_precision(trim(path)//runfile_prec,sum(abs(field)))
+     call write_precision(trim(path)//runfile_prec,1,[sum(abs(field))])
   endif
 
   !------------------------------------------------------------------
@@ -465,7 +469,7 @@ end subroutine cgyro_write_distributed_breal
 !  Reduce across n and then write precision scalar.
 !------------------------------------------------------
 
-subroutine write_precision(datafile,fn)
+subroutine write_precision(datafile,n_fn,fn)
 
   use mpi
   use cgyro_globals
@@ -474,8 +478,9 @@ subroutine write_precision(datafile,fn)
   implicit none
   !
   character (len=*), intent(in) :: datafile
-  real, intent(in) :: fn
-  real :: fn_sum
+  integer, intent(in) :: n_fn
+  real, intent(in), dimension(n_fn) :: fn
+  real, dimension(n_fn) :: fn_sum
   integer :: i
   !------------------------------------------------------
 
@@ -507,7 +512,7 @@ subroutine write_precision(datafile,fn)
      ! Append
 
      open(unit=io,file=datafile,status='old',position='append')
-     write(io,fmtstr_prec) fn_sum
+     write(io,fmtstr_prec) fn_sum(:)
      close(io)
 
   case(3)
@@ -516,7 +521,7 @@ subroutine write_precision(datafile,fn)
 
      open(unit=io,file=datafile,status='old')
      do i=1,i_current
-        read(io,fmtstr_prec) fn_sum
+        read(io,fmtstr_prec) fn_sum(:)
      enddo
      endfile(io)
      close(io)
