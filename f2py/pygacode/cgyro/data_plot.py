@@ -531,7 +531,6 @@ class cgyrodata_plot(data.cgyrodata):
       absnorm = xin['abs']
       moment  = xin['moment']
       spec    = xin['spec']
-      dn      = xin['dn']
       nstr    = xin['nstr']
 
 
@@ -583,10 +582,9 @@ class cgyrodata_plot(data.cgyrodata):
       #======================================
 
 
-      print('HINT: adjust -dn to match experimental dn (rho/a and Lx/a will shrink)')
       T0  = np.sum(T[:,n,:],axis=0)
       Ent0= np.sum(Ent[:,n,:],axis=0) 
-      Wkt0= np.sum(Wkt[:,n,:],axis=0)  *dn**2
+      Wkt0= np.sum(Wkt[:,n,:],axis=0)
       diss_r0 = np.sum(diss_r[:,n,:],axis=0)
       diss_th0= np.sum(diss_th[:,n,:],axis=0)
       diss_c0 = np.sum(diss_c[:,n,:],axis=0)
