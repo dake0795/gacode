@@ -12,17 +12,27 @@
 CORES_PER_NODE=64
 NUMAS_PER_NODE=1
 
-MAKE           := make
-LIB_PATH       := $(subst :, ,${CMAKE_PREFIX_PATH})
-OPENBLAS_PATH  := $(strip $(foreach x,${LIB_PATH},$(if $(findstring openblas,${x}),${x})))
-FFTW_PATH      := $(strip $(foreach x,${LIB_PATH},$(if $(findstring fftw,${x}),${x})))
-HDF5_PATH      := $(strip $(foreach x,${LIB_PATH},$(if $(findstring hdf5,${x}),${x})))
-NETCDF_PATH    := $(strip $(foreach x,${LIB_PATH},$(if $(findstring netcdf-c,${x}),${x})))
-NETCDFF_PATH   := $(strip $(foreach x,${LIB_PATH},$(if $(findstring netcdf-fortran,${x}),${x})))
-LIB_PATH       := $(filter-out ${OPENBLAS_PATH} ${FFTW_PATH} ${NETCDF_PATH},${LIB_PATH})
-LIB            := $(foreach x,${LIB_PATH},-L$(strip ${x})/lib)
-INCLUDE        := -I/usr/include $(foreach x,${LIB_PATH},-I$(strip ${x})/include) -I${OPENBLAS_PATH}/include -I${FFTW_PATH}/include
-MF90           := mpif90
+MAKE           = make
+CFC            = gfortran
+MF90           = mpif90
+
+GCC_LIB        = $(strip $(subst bin/gfortran,lib,$(shell which ${CFC})))
+OPENMPI_LIB    = $(strip $(subst bin/mpif90,lib,$(shell which ${MF90})))
+OPENBLAS_LIB   = $(shell pkg-config --variable=libdir openblas)
+FFTW_LIB       = $(shell pkg-config --variable=libdir fftw3)
+HDF5_LIB       = $(shell pkg-config --variable=libdir hdf5)
+NETCDF_LIB     = $(shell pkg-config --variable=libdir netcdf)
+NETCDFF_LIB    = $(shell pkg-config --variable=libdir netcdf-fortran)
+LIB            = -L${GCC_LIB} -L${OPENMPI_LIB}
+
+GCC_INCL       = $(strip $(subst bin/gfortran,include,$(shell which ${CFC})))
+OPENMPI_INCL   = $(strip $(subst bin/mpif90,include,$(shell which ${MF90})))
+OPENBLAS_INCL  = $(shell pkg-config --variable=includedir openblas)
+FFTW_INCL      = $(shell pkg-config --variable=includedir fftw3)
+HDF5_INCL      = $(shell pkg-config --variable=includedir hdf5)
+NETCDF_INCL    = $(shell pkg-config --variable=includedir netcdf)
+NETCDFF_INCL   = $(shell pkg-config --variable=includedir netcdf-fortran)
+INCLUDE        = -I/usr/include -I${GCC_INCL} -I${OPENMPI_INCL} -I${OPENBLAS_INCL} -I${FFTW_INCL} -I${HDF5_INCL}
 
 # Compilers and flags
 
@@ -37,12 +47,12 @@ FOMP   = -fopenmp
 
 # System math libraries
 
-LMATH = -L${OPENBLAS_PATH} -lopenblas -L${FFTW_PATH}/lib -lfftw3 -lfftw3f -lfftw3_threads -lfftw3f_threads
+LMATH = -L${OPENBLAS_LIB} -lopenblas -L${FFTW_LIB} -lfftw3 -lfftw3f -lfftw3_threads -lfftw3f_threads
 
 # Optional netCDF libraries
 
-NETCDF     = -L${NETCDFF_PATH}/lib -lnetcdff -L${NETCDF_PATH}/lib -lnetcdf -L${HDF5_PATH}/lib -lhdf5 -lhdf5_hl
-NETCDF_INC = ${NETCDFF_PATH}/include
+NETCDF     = -L${NETCDFF_LIB} -lnetcdff -L${NETCDF_LIB} -lnetcdf -L${HDF5_LIB} -lhdf5 -lhdf5_hl
+NETCDF_INC = ${NETCDFF_INCL}
 
 # Archive
 
