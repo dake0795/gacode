@@ -46,7 +46,7 @@ then
   echo "                = ky_flux  (bar plot of flux versus ky)"
   echo "                = phi      (time-dependent ZF vs. finite-n intensities)"
   echo "                = triad    (triad energy transfer for all ky)"
-  echo "                = triad_v2 (free energy balance of ky=0)"
+  echo "                = triad_v2 (free energy balance of ky versus time)"
   echo "                = triad_v3 (effective growrh rate of ZF and NZF)"
   echo "                = ky_phi   (time-dependent ky-phi intensities)"
   echo "                = kx_phi   (average kx-phi intensities)"
@@ -231,7 +231,7 @@ then
   echo "  $ cgyro_plot -e . -plot flux -moment n       [particle flux versus time]"
   echo "  $ cgyro_plot -e . -plot flux -fc -field 1    [A_par energy flux versus time]"
   echo "  $ cgyro_plot -e . -plot ky_flux              [energy flux versus ky]"
-  echo "  $ cgyro_plot -e . -plot triad_v2 -species -1 [free energy balance of ky=0 versus time]"
+  echo "  $ cgyro_plot -e . -plot triad_v2 -species -1 -n 0 [free energy balance of ky versus time]"
   echo "  $ cgyro_plot -e . -plot triad_v3             [effective growth rate of ZF and NZF versus ky]"
   echo
   echo "VISUALIZATIONS [build gapy for speed]"

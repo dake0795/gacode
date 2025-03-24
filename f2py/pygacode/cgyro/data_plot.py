@@ -532,6 +532,7 @@ class cgyrodata_plot(data.cgyrodata):
       moment  = xin['moment']
       spec    = xin['spec']
       dn      = xin['dn']
+      nstr    = xin['nstr']
 
 
       t = self.getnorm(xin['norm'])
@@ -554,12 +555,22 @@ class cgyrodata_plot(data.cgyrodata):
       diss_th=f[:,6,:,:].real
       diss_c= f[:,7,:,:].real
 
+      ## get toroidal number n
+      if nstr == 'null':
+         n = 0
+      else:
+         nvec = str2list(nstr)
+         if len(nvec)!=1:
+            print('ERROR: (triad_v2) Plot not available with multi toroidal mode.')
+            sys.exit()
+         n = nvec[0]
+
       ## get heat flux
       usec = self.getflux(cflux='auto')
 
-      ys = np.sum(self.ky_flux,axis=(2,3))
-      y  = ys[:,1,:]  # 'Q'
-      yn = ys[:,0,:]  # 'Gamma'
+      ys = np.sum(self.ky_flux,axis=2)
+      y  = ys[:,1,n,:]  # 'Q'
+      yn = ys[:,0,n,:]  # 'Gamma'
 
       #======================================
       # Set figure size and axes
@@ -567,17 +578,18 @@ class cgyrodata_plot(data.cgyrodata):
       ax.grid(which="both",ls=":")
       ax.grid(which="major",ls=":")
       ax.set_xlabel(self.tstr)
-      ax.set_title(r'$\mathrm{Triad~energy~transfer~intensity}$'+ r'$-(L_{T_e}/Q_{GBD})$')
+      ax.set_title(r'$\mathrm{Triad~energy~transfer~intensity~at~k_y\rho_D=%2.2f}$'%(self.kynorm[n])+
+                   r'$-(L_{T_e}/Q_{GBD})$')
       #======================================
 
-      # n=0 intensity
+
       print('HINT: adjust -dn to match experimental dn (rho/a and Lx/a will shrink)')
-      T0  = np.sum(T[:,0,:],axis=0)
-      Ent0= np.sum(Ent[:,0,:],axis=0) 
-      Wkt0= np.sum(Wkt[:,0,:],axis=0)  *dn**2
-      diss_r0 = np.sum(diss_r[:,0,:],axis=0)
-      diss_th0= np.sum(diss_th[:,0,:],axis=0)
-      diss_c0 = np.sum(diss_c[:,0,:],axis=0)
+      T0  = np.sum(T[:,n,:],axis=0)
+      Ent0= np.sum(Ent[:,n,:],axis=0) 
+      Wkt0= np.sum(Wkt[:,n,:],axis=0)  *dn**2
+      diss_r0 = np.sum(diss_r[:,n,:],axis=0)
+      diss_th0= np.sum(diss_th[:,n,:],axis=0)
+      diss_c0 = np.sum(diss_c[:,n,:],axis=0)
 
       if spec == 1: # electron
          ft = r'{L_{T_e} T_{NZF \rightarrow ZF,e}/Q_{GBD}}'
@@ -618,12 +630,12 @@ class cgyrodata_plot(data.cgyrodata):
       ax.plot(self.t ,T0           ,label=lab0,linewidth=2)
       ax.plot(self.t ,Ent0         ,label=lab1,linewidth=2)
       ax.plot(self.t ,Wkt0         ,label=lab2,linewidth=2)
-      #ax.plot(self.t ,G+Q          ,label=lab3,linewidth=2) # q_s = (1/Ln-1.5/LT)T_s*Gamma_s + Q_s
+      ax.plot(self.t ,G+Q          ,label=lab3,linewidth=2) # q_s = (1/Ln-1.5/LT)T_s*Gamma_s + Q_s
       ax.plot(self.t ,diss_r0      ,label=lab4,linewidth=2)
       ax.plot(self.t ,diss_th0     ,label=lab5,linewidth=2)
       ax.plot(self.t ,diss_c0      ,label=lab6,linewidth=2)
-      if spec == -1: ax.plot(self.t ,(T0 - Ent0) ,':k', label=r'$ZF: T0-S0 $',linewidth=2)
-      if spec == -1: ax.plot(self.t ,-(diss_r0+diss_th0+diss_c0) ,':r', label=r'$ZF: Dissipations $',linewidth=2)
+      if spec == -1: ax.plot(self.t , (T0 + (G+Q)/2.0 - Ent0 - Wkt0) ,':k', label=r'$ q+T-dS/dt $',linewidth=2)
+      if spec == -1: ax.plot(self.t ,-(diss_r0 + diss_th0 + diss_c0) ,':r', label=r'$ Dissipations $',linewidth=2)
 
       ax.set_xlim(0,t[-1])
       if ymax != 'auto':
