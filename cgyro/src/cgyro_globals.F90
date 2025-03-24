@@ -237,7 +237,7 @@ module cgyro_globals
   character(len=13) :: runfile_restart_tag = 'out.cgyro.tag'
   character(len=15) :: runfile_grids   = 'out.cgyro.grids'
   character(len=14) :: runfile_prec    = 'out.cgyro.prec'
-  character(len=14) :: runfile_prec_tri= 'out.cgyro.prec_tri'
+  character(len=18) :: runfile_prec_tri= 'out.cgyro.prec_tri'
   character(len=14) :: runfile_time    = 'out.cgyro.time'
   character(len=16) :: runfile_timers  = 'out.cgyro.timing'
   character(len=18) :: runfile_startups= 'out.cgyro.startups'

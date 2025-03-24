@@ -486,7 +486,7 @@ subroutine write_precision(datafile,n_fn,fn)
 
   call MPI_ALLREDUCE(fn, &
        fn_sum, &
-       1, &
+       n_fn, &
        MPI_DOUBLE_PRECISION, &
        MPI_SUM, &
        NEW_COMM_2, &
