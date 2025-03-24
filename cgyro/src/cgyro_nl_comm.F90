@@ -762,7 +762,8 @@ subroutine cgyro_nl_fftw_comm1_r_triad(ij)
                 thfac = thfac_itor(itd_class,itor)
               endif
 
-              cprod2 = cprod2 - rval* thfac*cderiv(id) *cap_h_c(jc,iv_loc_m,itor)
+              ! Remove kx energy transfer simply by jc -> jr0(1)+itd
+              cprod2 = cprod2 - rval* thfac*cderiv(id) *cap_h_c( jr0(1)+itd ,iv_loc_m,itor)
               cprod = cprod - rval2* uderiv(id)*up_theta *g_x(jc,iv_loc_m,itor)
               itd = itd + 1
               jc = jc + 1
@@ -890,7 +891,8 @@ subroutine cgyro_nl_fftw_comm1_r_triad(ij)
                 thfac = thfac_itor(itd_class,itor)
               endif
 
-              cprod2 = cprod2 - rval* thfac*cderiv(id) *cap_h_c(jc,iv_loc_m,itor)
+              ! Remove kx energy transfer simply by jc -> jr0(1)+itd
+              cprod2 = cprod2 - rval* thfac*cderiv(id) *cap_h_c( jr0(1)+itd ,iv_loc_m,itor)
               cprod = cprod - rval2* uderiv(id)*up_theta *g_x(jc,iv_loc_m,itor)
               itd = itd + 1
               jc = jc + 1
