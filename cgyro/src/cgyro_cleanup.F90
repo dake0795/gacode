@@ -196,6 +196,10 @@ subroutine cgyro_cleanup
      ccl_del_device(cap_h_ct)       
      deallocate(cap_h_ct)
   endif
+  if(allocated(cap_h_c_triad))  then
+     ccl_del_device(cap_h_c_triad)       
+     deallocate(cap_h_c_triad)
+  endif
   if(allocated(cap_h_c_dot)) then
      ccl_del_device(cap_h_c_dot)
      deallocate(cap_h_c_dot)

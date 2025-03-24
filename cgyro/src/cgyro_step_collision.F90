@@ -345,10 +345,10 @@ subroutine cgyro_step_collision_cpu(use_simple)
         ! Save collisional diss. 
         my_ch = cap_h_ct(iv_loc,itor,ic)
         my_psi = sum(jvec_c(:,ic,iv_loc,itor)*field(:,ic,itor))
-           
         my_psi = my_ch-my_psi*(z(is)/temp(is))
-        cap_h_ct(iv_loc,itor,ic) = (cap_h_c(ic,iv_loc,itor) + my_ch) / 2.0
-        cap_h_ct(iv_loc,itor,ic) = conjg(cap_h_ct(iv_loc,itor,ic)) &
+
+        cap_h_c_triad(iv_loc,itor,ic) = 0.5 * (cap_h_c(ic,iv_loc,itor) + my_ch)
+        cap_h_c_triad(iv_loc,itor,ic) = conjg(cap_h_c_triad(iv_loc,itor,ic)) &
           * ( my_psi - h_x(ic,iv_loc,itor) )
 
         h_x(ic,iv_loc,itor) = my_psi
@@ -1056,7 +1056,7 @@ subroutine cgyro_step_collision_gpu(use_simple)
 !$omp&         private(iv_loc,is,my_psi,my_ch)
 #else
 !$acc parallel loop collapse(3) gang vector private(iv_loc,is,my_psi,my_ch) &
-!$acc&         present(is_v,cap_h_c,cap_h_ct,cap_h_c,jvec_c,field,z,temp,h_x) &
+!$acc&         present(is_v,cap_h_c,cap_h_ct,cap_h_c_triad,cap_h_c,jvec_c,field,z,temp,h_x) &
 !$acc&         present(nt1,nt2,nv1,nv2,nc) default(none)
 #endif
   do itor=nt1,nt2
@@ -1068,10 +1068,10 @@ subroutine cgyro_step_collision_gpu(use_simple)
         ! Save collisional diss. 
         my_ch = cap_h_ct(iv_loc,itor,ic)
         my_psi = sum(jvec_c(:,ic,iv_loc,itor)*field(:,ic,itor))
-           
         my_psi = my_ch-my_psi*(z(is)/temp(is))
-        cap_h_ct(iv_loc,itor,ic) = (cap_h_c(ic,iv_loc,itor) + my_ch) / 2.0
-        cap_h_ct(iv_loc,itor,ic) = conjg(cap_h_ct(iv_loc,itor,ic)) &
+
+        cap_h_c_triad(iv_loc,itor,ic) = 0.5 * (cap_h_c(ic,iv_loc,itor) + my_ch)
+        cap_h_c_triad(iv_loc,itor,ic) = conjg(cap_h_c_triad(iv_loc,itor,ic)) &
           * ( my_psi - h_x(ic,iv_loc,itor) )
 
         h_x(ic,iv_loc,itor) = my_psi

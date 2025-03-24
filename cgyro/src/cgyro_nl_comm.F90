@@ -657,7 +657,7 @@ subroutine cgyro_nl_fftw_comm1_r_triad(ij)
 !$acc parallel loop collapse(4) gang vector independent private(ic_loc_m,my_psi) &
 !$acc&         private(iexch0,itor0,isplit0,iexch_base) &
 !$acc&         private(id,itorbox,jr0,jc,itd,itd_class,thfac) &
-!$acc&         present(h_x,g_x,cap_h_c,cap_h_ct,field,dvjvec_c,jvec_c) &
+!$acc&         present(h_x,g_x,cap_h_c,cap_h_c_triad,field,dvjvec_c,jvec_c) &
 !$acc&         present(ic_c,is_v,ix_v,ie_v,w_exi,w_theta,dens2_rot,z,temp) &
 !$acc&         present(omega_stream,vel,xi,thfac_itor,cderiv,uderiv) &
 !$acc&         present(px,rhs,fpackA,fpackB,epackA,epackB,diss_r,triad_loc) copyin(psi_mul,zf_scale) &
@@ -771,9 +771,13 @@ subroutine cgyro_nl_fftw_comm1_r_triad(ij)
 
            triad_loc(is,ir,itor,6) = triad_loc(is,ir,itor,6) + cprod*conjg(cap_h_c(ic_loc_m,iv_loc_m,itor))*dvr
            ! 7. Diss. (Coll. = Implicit advance - theta_streaming )
-           triad_loc(is,ir,itor,7) = triad_loc(is,ir,itor,7) &
-                 + ( cap_h_ct(iv_loc_m,itor,ic_loc_m)/delta_t + cprod2*conjg(cap_h_c(ic_loc_m,iv_loc_m,itor)) )*dvr
-
+           if (explicit_trap_flag == 1) then
+              triad_loc(is,ir,itor,7) = triad_loc(is,ir,itor,7) &
+                 + ( cap_h_c_triad(iv_loc_m,itor,ic_loc_m)/delta_t )*dvr
+           else 
+              triad_loc(is,ir,itor,7) = triad_loc(is,ir,itor,7) &
+                 + ( cap_h_c_triad(iv_loc_m,itor,ic_loc_m)/delta_t + cprod2*conjg(cap_h_c(ic_loc_m,iv_loc_m,itor)) )*dvr
+           endif
 
            if ( (itor == 0) .and.  (ir == 1 .or. px(ir) == 0) ) then
               ! filter
@@ -802,7 +806,7 @@ subroutine cgyro_nl_fftw_comm1_r_triad(ij)
 !$acc parallel loop collapse(4) gang vector independent private(ic_loc_m,my_psi) &
 !$acc&         private(iexch0,itor0,isplit0,iexch_base) &
 !$acc&         private(id,itorbox,jr0,jc,itd,itd_class,thfac) &
-!$acc&         present(h_x,g_x,cap_h_c,cap_h_ct,field,dvjvec_c,jvec_c) &
+!$acc&         present(h_x,g_x,cap_h_c,cap_h_c_triad,field,dvjvec_c,jvec_c) &
 !$acc&         present(ic_c,is_v,ix_v,ie_v,w_exi,w_theta,dens2_rot,z,temp) &
 !$acc&         present(omega_stream,vel,xi,thfac_itor,cderiv,uderiv) &
 !$acc&         present(px,rhs,fpackA,epackA,diss_r,triad_loc) copyin(psi_mul,zf_scale) &
@@ -900,9 +904,13 @@ subroutine cgyro_nl_fftw_comm1_r_triad(ij)
 
            triad_loc(is,ir,itor,6) = triad_loc(is,ir,itor,6) + cprod*conjg(cap_h_c(ic_loc_m,iv_loc_m,itor))*dvr
            ! 7. Diss. (Coll. = Implicit advance - theta_streaming )
-           triad_loc(is,ir,itor,7) = triad_loc(is,ir,itor,7) &
-                 + ( cap_h_ct(iv_loc_m,itor,ic_loc_m)/delta_t + cprod2*conjg(cap_h_c(ic_loc_m,iv_loc_m,itor)) )*dvr
-
+           if (explicit_trap_flag == 1) then
+              triad_loc(is,ir,itor,7) = triad_loc(is,ir,itor,7) &
+                 + ( cap_h_c_triad(iv_loc_m,itor,ic_loc_m)/delta_t )*dvr
+           else 
+              triad_loc(is,ir,itor,7) = triad_loc(is,ir,itor,7) &
+                 + ( cap_h_c_triad(iv_loc_m,itor,ic_loc_m)/delta_t + cprod2*conjg(cap_h_c(ic_loc_m,iv_loc_m,itor)) )*dvr
+           endif
 
            if ( (itor == 0) .and.  (ir == 1 .or. px(ir) == 0) ) then
               ! filter

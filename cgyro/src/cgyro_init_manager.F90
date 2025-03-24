@@ -283,6 +283,7 @@ subroutine cgyro_init_manager
      allocate(omega_h(nc,nv_loc,nt1:nt2))
      if (triad_print_flag == 1) then
         allocate(diss_r(nc,nv_loc,nt1:nt2))
+        allocate(cap_h_c_triad(nv_loc,nt1:nt2,nc))
      endif
      allocate(omega_s(n_field,nc,nv_loc,nt1:nt2))
      allocate(omega_ss(n_field,nc,nv_loc,nt1:nt2))
