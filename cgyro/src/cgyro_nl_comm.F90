@@ -644,7 +644,7 @@ subroutine cgyro_nl_fftw_comm1_r_stress(itf)
            if (itor == 0) then
               my_psi = my_psi*zf_scale
            endif
-           stress(ic_loc_m,iv_loc_m,itor,itf) = stress(ic_loc_m,iv_loc_m,itor,itf)+psi_mul*my_psi
+           stress(ic_loc_m,iv_loc_m,itor,itf) = psi_mul*my_psi
         enddo
        enddo
       enddo
@@ -682,7 +682,7 @@ subroutine cgyro_nl_fftw_comm1_r_stress(itf)
            if (itor == 0) then
               my_psi = my_psi*zf_scale
            endif
-           stress(ic_loc_m,iv_loc_m,itor,itf) = stress(ic_loc_m,iv_loc_m,itor,itf)+psi_mul*my_psi
+           stress(ic_loc_m,iv_loc_m,itor,itf) = psi_mul*my_psi
         enddo
       enddo
     enddo
