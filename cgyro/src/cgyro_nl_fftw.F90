@@ -755,34 +755,44 @@ subroutine cgyro_nl_fftw_mul_sub_mean(ny,nx,nt,uvm,uxm,vym,uym,vxm,inv_nxny)
   real, intent(in) :: inv_nxny
 
   integer :: iy,ix,it
-  integer :: sz,sz_t
+  integer :: sz
   integer :: i,i_xt
   real :: y_mean_ux, y_mean_uy, y_mean_vx, y_mean_vy
   real :: r_ux, r_uy, r_vx, r_vy
   real :: inv_ny
 
   sz = ny*nx*nt
-  sz_t = ny*nx
   inv_ny = 1.0/ny
 
 #if defined(OMPGPU)
 !$omp target teams distribute parallel do collapse(2) &
-!$omp&  private(iy,i_xt,y_mean_ux,y_mean_uy,y_mean_vx,y_mean_vy) &
+!$omp&  private(i_xt,y_mean_ux,y_mean_uy,y_mean_vx,y_mean_vy) &
 !$omp&  private(i,r_ux,r_uy,r_vx,r_vy) &
 !$omp&  map(to:uxm(1:sz),vym(1:sz),uym(1:sz),vxm(1:sz)) &
 !$omp&  map(from:uvm(1:sz))
 #else
 !$acc parallel loop independent gang collapse(2) &
-!$acc&         private(iy,i_xt,y_mean_ux,y_mean_uy,y_mean_vx,y_mean_vy) &
+!$acc&         private(i_xt,y_mean_ux,y_mean_uy,y_mean_vx,y_mean_vy) &
 !$acc&         present(uvm,uxm,vym,uym,vxm)
 #endif
   do it=0,nt-1
    do ix=0,nx-1
-    i_xt = (it*sz_t) + ix*ny;
-    y_mean_ux = sum(uxm(i_xt+1:i_xt+ny) ) * inv_ny
-    y_mean_uy = sum(uym(i_xt+1:i_xt+ny) ) * inv_ny
-    y_mean_vx = sum(vxm(i_xt+1:i_xt+ny) ) * inv_ny
-    y_mean_vy = sum(vym(i_xt+1:i_xt+ny) ) * inv_ny
+    i_xt = (it*ny*nx) + ix*ny;
+    y_mean_ux = 0.0 ; y_mean_uy = 0.0
+    y_mean_vx = 0.0 ; y_mean_vy = 0.0
+    do iy=1,ny
+      i = i_xt+iy
+      ! remove ky=0
+      y_mean_ux = y_mean_ux + uxm(i)
+      y_mean_uy = y_mean_uy + uym(i)
+      y_mean_vx = y_mean_vx + vxm(i)
+      y_mean_vy = y_mean_vy + vym(i)
+    enddo
+    y_mean_ux = y_mean_ux* inv_ny
+    y_mean_uy = y_mean_uy* inv_ny
+    y_mean_vx = y_mean_vx* inv_ny
+    y_mean_vy = y_mean_vy* inv_ny
+
 #if (!defined(OMPGPU)) && defined(_OPENACC)
 !$acc loop vector private(i,r_ux,r_uy,r_vx,r_vy)
 #endif
@@ -795,7 +805,7 @@ subroutine cgyro_nl_fftw_mul_sub_mean(ny,nx,nt,uvm,uxm,vym,uym,vxm,inv_nxny)
       r_vy = vym(i) - y_mean_vy
 
       ! compute and save uv
-      uvm(i) = (r_ux * r_vy - r_uy * r_vx)*inv_nxny
+      uvm(i) = (r_ux*r_vy-r_uy*r_vx)*inv_nxny
     enddo
    enddo
   enddo
