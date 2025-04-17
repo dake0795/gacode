@@ -1544,22 +1544,22 @@ class cgyrodata_plot(data.cgyrodata):
       f,ft = self.kxky_select(theta,field,moment,0,gbnorm=True)
 
       if nstr == 'null' or nstr == '+':
+         ax.set_ylabel(self.ylabeler(nstr,ft,sq=True,tave=True))
          if nstr == '+':
             y = np.sum(abs(f[:,1:,:])**2,axis=1)
          else:
             y = np.sum(abs(f[:,:,:])**2,axis=1)
 
          ave = time_average(y,t,imin,imax)
-         ax.set_ylabel(self.ylabeler(nstr,ft,sq=True,tave=True))
          if bar:
             ax.step(kx+dk/2,ave,color='m')
          else:
             ax.plot(kx,ave,color='m')
 
       else:
-         nvec = str2list(nstr)
-         print('INFO: (plot_kx_phi) n = '+str(nvec))
          ax.set_ylabel(self.ylabeler('n',ft,sq=True,tave=True))
+         nvec = str2list(nstr) 
+         print('INFO: (plot_kx_phi) n = '+str(nvec))
          for n in nvec:
             num = r'$n='+str(n)+'$'
             ave = time_average(abs(f[:,n,:])**2,t,imin,imax)
@@ -1574,10 +1574,7 @@ class cgyrodata_plot(data.cgyrodata):
                else:
                   ax.plot(kx,ave,label=num)
 
-            if self.n_n > 16:
-               ax.legend(loc=4, ncol=5, prop={'size':12})
-            else:
-               ax.legend(loc=4, ncol=6, prop={'size':12})
+         ax.legend(loc=4,ncol=6,prop={'size':11})         
 
       ax.set_xlim([-x0,x0])
       ax.set_yscale('log')

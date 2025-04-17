@@ -298,7 +298,7 @@ nm,jm,dt,efreq,emode,error,edict,evec = rundmd(k)
 
 # OUTPUT
 str1 = '# cgyrodmd\n'
-str2 = '# k = {}\n'.format(kmin)
+str2 = '# k = {}\n'.format(k)
 str3 = '# tmax = {:.1f} a/cs | w*tmax = {:.2f}\n'.format(t[imax-1],abs(efreq[0])*t[imax-1])
 str4 = '# dt   = {:.3f} a/cs | w*dt   = {:.3f}\n'.format(dt,abs(efreq[0])*dt)
 str5 = '# gamma     omega     error\n'

@@ -26,5 +26,5 @@ export OMP_STACKSIZE=400M
 export SLURM_CPU_BIND="cores"
 ulimit -c unlimited
 
-echo "> srun -C cpu --cpu_bind=cores -n $nmpi -c $nomp $exec"
-srun -C cpu --cpu_bind=cores -n $nmpi -c $nomp $exec
+echo "> srun --cpu_bind=cores -n $nmpi -c $nomp $exec"
+srun --cpu_bind=cores -n $nmpi -c $nomp $exec
