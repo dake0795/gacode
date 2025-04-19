@@ -137,9 +137,9 @@ subroutine cgyro_kernel
 #endif
        if (triad_print_flag == 1) then
 #if defined(OMPGPU)
-!$omp target update from(triad_loc)
+!$omp target update from(triad_loc,triad_loc_old)
 #elif defined(_OPENACC)
-!$acc update host(triad_loc)
+!$acc update host(triad_loc,triad_loc_old)
 #endif
        endif
        call timer_lib_out('coll_mem')

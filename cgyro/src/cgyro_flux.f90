@@ -44,7 +44,6 @@ subroutine cgyro_flux
   complex :: cprod
   real, parameter :: x_fraction=0.2
   real :: u
-  real :: kx
   
 !$omp parallel do private(iv_loc,iv,is,ix,ie,dv,vpar,ic,ir,it,erot,cprod,cn) &
 !$omp&            private(prod1,prod2,prod3,l,icl,dvr,u,flux_norm) &
@@ -107,7 +106,9 @@ subroutine cgyro_flux
      !-------------------------------------------------------------
 
      gflux_loc(:,:,:,:,itor) = 0.0
-
+     if (triad_print_flag == 1) then
+        triad_loc_old(:,:,itor,8) = 0.0
+     endif
      iv_loc = 0
      do iv=nv1,nv2
 
@@ -178,6 +179,17 @@ subroutine cgyro_flux
            ! 4. Exchange
            gflux_loc(:,is,4,:,itor) = gflux_loc(:,is,4,:,itor)+0.5*prod3(:,:)*dvr*z(is)
 
+           ! field_olds are always only in system memory... too expensive to keep in GPU memory
+           if (triad_print_flag == 1) then
+              ! Field potential remaining term. dPsi/dt H^* 
+               cprod = 3.0*sum(jvec_c(:,ic,iv_loc,itor)*field(:,ic,itor) ) &
+                    -4.0*sum(jvec_c(:,ic,iv_loc,itor)*field_old2(:,ic,itor) )
+                    +sum(jvec_c(:,ic,iv_loc,itor)*field_old3(:,ic,itor) )
+               cprod = cprod*conjg(cap_h_c(ic,iv_loc,itor))*(z(is)/temp(is))*dvr 
+               !$omp critical
+               triad_loc_old(is,ir,itor,8) = triad_loc_old(is,ir,itor,8) + cprod
+               !$omp end critical
+           endif
         enddo
 
      enddo
@@ -195,26 +207,27 @@ subroutine cgyro_flux
   !-------------------------------------------------------------
 
      if (triad_print_flag == 1) then
-      kx = 2*pi*rho/length
       do is=1,n_species
         ! Triad energy transfer   :   T_k
-        triad_loc_old(is,:,itor,1) = triad_loc(is,:,itor,1) *temp(is)/dlntdr(is_ele)
-        ! From Nonzonal Triad energy transfer   :   T_k [NZ(k',k")->k]
-        triad_loc_old(is,:,itor,2) = triad_loc(is,:,itor,2) *temp(is)/dlntdr(is_ele)
+        triad_loc_old(is,:,itor,1) = triad_loc(is,:,itor,1)
+        ! From Nonzonal Triad energy transfer(ky!=0) , N(ky=0)   :   T_k [NZ(k',k")->k]
+        triad_loc_old(is,:,itor,2) = triad_loc(is,:,itor,2)
         ! dEntropy / dt   :   dS_k/dt 
-        triad_loc_old(is,:,itor,3) = (triad_loc(is,:,itor,3)-triad_loc_old(is,:,itor,3))/delta_t
-        triad_loc_old(is,:,itor,3) = triad_loc_old(is,:,itor,3) *temp(is)/dlntdr(is_ele)*0.5
-        ! dWk_perp / dt    , (ky = 0)  
-        triad_loc_old(is,:,itor,4) = (triad_loc(is,:,itor,4)-triad_loc_old(is,:,itor,4))/delta_t
-        triad_loc_old(is,:,itor,4) = triad_loc_old(is,:,itor,4) *(kx*lambda_star)**2/dlntdr(is_ele)*0.5
+        triad_loc_old(is,:,itor,3) = (triad_loc(is,:,itor,3)-triad_loc_old(is,:,itor,3))
+        triad_loc_old(is,:,itor,3) = triad_loc_old(is,:,itor,3)/delta_t*0.5
+        ! dEM field /dt   :   Wk_perp/dt  
+        triad_loc_old(is,:,itor,4) = (triad_loc(is,:,itor,4)-triad_loc_old(is,:,itor,4)+triad_loc_old(is,:,itor,8)) 
+        triad_loc_old(is,:,itor,4) = -triad_loc_old(is,:,itor,4)/delta_t*0.5
         ! Entropy   :   S_k
-        triad_loc_old(is,:,itor,5) = triad_loc(is,:,itor,3) *temp(is)/dlntdr(is_ele)*0.5
+        triad_loc_old(is,:,itor,5) = triad_loc(is,:,itor,3)*0.5
         ! Diss. (radial)
-        triad_loc_old(is,:,itor,6) = triad_loc(is,:,itor,5) *temp(is)/dlntdr(is_ele)
+        triad_loc_old(is,:,itor,6) = triad_loc(is,:,itor,5)
         ! Diss. (theta )
-        triad_loc_old(is,:,itor,7) = triad_loc(is,:,itor,6) *temp(is)/dlntdr(is_ele)
+        triad_loc_old(is,:,itor,7) = triad_loc(is,:,itor,6)
         ! Diss. (Coll. )
-        triad_loc_old(is,:,itor,8) = triad_loc(is,:,itor,7) *temp(is)/dlntdr(is_ele)
+        triad_loc_old(is,:,itor,8) = triad_loc(is,:,itor,7)
+
+        triad_loc_old(is,:,itor,:) = triad_loc_old(is,:,itor,:) *temp(is)/dlntdr(is_ele)
       enddo
      endif
 

@@ -549,7 +549,7 @@ class cgyrodata_plot(data.cgyrodata):
       # 5- Diss.(radial) , 6- Diss.(theta) , 7- Diss.(Collision)
       T  = f[:,0,:,:].real
       Ent= f[:,2,:,:].real
-      Wkt= self.triad[0,0,:,3,:,:].real
+      Wkt= f[:,3,:,:].real
       diss_r= f[:,5,:,:].real
       diss_th=f[:,6,:,:].real
       diss_c= f[:,7,:,:].real
@@ -632,8 +632,8 @@ class cgyrodata_plot(data.cgyrodata):
       ax.plot(self.t ,diss_r0      ,label=lab4,linewidth=2)
       ax.plot(self.t ,diss_th0     ,label=lab5,linewidth=2)
       ax.plot(self.t ,diss_c0      ,label=lab6,linewidth=2)
-      if spec == -1: ax.plot(self.t , (T0 + (G+Q)/2.0 - Ent0 - Wkt0) ,':k', label=r'$ q+T-dS/dt $',linewidth=2)
-      if spec == -1: ax.plot(self.t ,-(diss_r0 + diss_th0 + diss_c0) ,':r', label=r'$ Dissipations $',linewidth=2)
+      if spec == -1: ax.plot(self.t ,-(T0 + (G+Q)/2.0 - Ent0 - Wkt0) ,':k', label=r'$ dS/dt-q-T $',linewidth=2)
+      if spec == -1: ax.plot(self.t , (diss_r0 + diss_th0 + diss_c0) ,':r', label=r'$ Dissipations $',linewidth=2)
 
       ax.set_xlim(0,t[-1])
       if ymax != 'auto':
