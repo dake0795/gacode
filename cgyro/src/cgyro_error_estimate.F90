@@ -180,3 +180,483 @@ subroutine cgyro_error_estimate
   endif
 
 end subroutine cgyro_error_estimate
+
+
+!------------------------------------------------------------------------------
+! TEMPORARY home for triad measurement(diagnostics)
+
+subroutine cgyro_triad_estimate(i_f)
+  use cgyro_globals
+  implicit none
+
+  !-----------------------------------
+  integer, intent(in) :: i_f
+  !-----------------------------------
+
+  if (triad_exec_flag == 1) then
+    call cgyro_triad_diagnostics
+  else
+    call cgyro_triad_setup
+  endif
+
+  if (i_f == 0) then
+    triad_exec_flag = 1
+  else
+    triad_exec_flag = 0
+  endif
+end subroutine cgyro_triad_estimate
+
+
+subroutine cgyro_triad_setup
+  use timer_lib
+  use cgyro_globals
+
+  implicit none
+
+  integer :: is,ix,ie
+  integer :: ir,it,iv_loc_m,ic_loc_m,itor
+
+  real :: dv,dvr
+  complex :: cprod,cprod2
+
+#if defined(OMPGPU)
+!$omp target teams distribute parallel do simd collapse(3)
+#elif defined(_OPENACC)
+!$acc parallel loop collapse(3) gang vector independent &
+!$acc&         present(triad_loc_old) &
+!$acc&         present(nt1,nt2,n_radial,n_species) default(none)
+#else
+!$omp parallel do private(ir,is)
+#endif
+  do itor=nt1,nt2
+      do ir=1,n_radial
+        do is=1,n_species
+          triad_loc_old(is,ir,itor,5) = triad_loc_old(is,ir,itor,3)
+          triad_loc_old(is,ir,itor,3) = triad_loc_old(is,ir,itor,1)
+          triad_loc_old(is,ir,itor,1) = 0.0
+
+          triad_loc_old(is,ir,itor,6) = triad_loc_old(is,ir,itor,4)
+          triad_loc_old(is,ir,itor,4) = triad_loc_old(is,ir,itor,2)
+          triad_loc_old(is,ir,itor,2) = 0.0
+        enddo
+      enddo
+  enddo
+
+
+! Avoiding memory race: inner loop must remain sequential (no vector collapse) - J
+#if defined(OMPGPU)
+!$omp target teams distribute parallel collapse(2) &
+!$omp&         map(to:z,temp) &
+!$omp&         firstprivate(nt1,nt2,nv1,nv_loc,n_theta,n_radial) &
+!$omp&         default(none)
+  do itor=nt1,nt2
+    do ir=1,n_radial
+!$omp parallel do simd collapse(2) &
+!$omp& private(is,ix,ie,dv,dvr,cprod,cprod2) &
+!$omp& private(ic_loc_m)
+#elif defined(_OPENACC)
+!$acc parallel loop gang collapse(2) &
+!$acc&         present(triad_loc_old,cap_h_c,field,dvjvec_c) &
+!$acc&         present(ic_c,is_v,ix_v,ie_v,w_exi,w_theta,dens2_rot,z,temp) &
+!$acc&         present(nt1,nt2,nv_loc,n_theta,n_radial) &
+!$acc&         firstprivate(nv1) &
+!$acc&         default(none)
+  do itor=nt1,nt2
+    do ir=1,n_radial
+!$acc loop seq collapse(2) &
+!$acc&         private(is,ix,ie,dv,dvr,cprod,cprod2) &
+!$acc&         private(ic_loc_m)
+#else
+!$omp parallel do collapse(2) private(ic_loc_m) &
+!$omp&         private(is,ix,ie,dv,dvr,cprod,cprod2) &
+  do itor=nt1,nt2
+    do ir=1,n_radial
+#endif
+      do iv_loc_m=1,nv_loc
+        do it=1,n_theta
+   
+           ic_loc_m = ic_c(ir,it)
+
+           is = is_v(iv_loc_m +nv1 -1 )
+           ix = ix_v(iv_loc_m +nv1 -1 )
+           ie = ie_v(iv_loc_m +nv1 -1 )
+           dv = w_exi(ie,ix)
+           dvr  = w_theta(it)*dens2_rot(it,is)*dv
+
+           ! Density moment
+           cprod = w_theta(it)*cap_h_c(ic_loc_m,iv_loc_m,itor)*dvjvec_c(1,ic_loc_m,iv_loc_m,itor)/z(is)
+           cprod = -(dvr*z(is)/temp(is)*field(1,ic_loc_m,itor)-cprod)
+
+           cprod = - field(1,ic_loc_m,itor)*conjg(field(1,ic_loc_m,itor))*(z(is)/temp(is))**2*dvr &
+                - 2.0*cprod*conjg(field(1,ic_loc_m,itor))*(z(is)/temp(is))
+           cprod2  = cap_h_c(ic_loc_m,iv_loc_m,itor)*conjg(cap_h_c(ic_loc_m,iv_loc_m,itor))*dvr + cprod
+           ! . Entropy(df) - Entropy(dH)
+           triad_loc_old(is,ir,itor,1) = triad_loc_old(is,ir,itor,1)  + cprod
+           ! . Entropy(df)
+           triad_loc_old(is,ir,itor,2) = triad_loc_old(is,ir,itor,2)  + cprod2
+
+        enddo
+      enddo
+    enddo
+  enddo
+
+end subroutine cgyro_triad_setup
+
+
+
+subroutine cgyro_triad_diagnostics
+  use timer_lib
+  use cgyro_globals
+
+  implicit none
+
+  integer :: is,ix,ie
+  integer :: id,itd,itd_class,jr0(0:2),itorbox,jc
+  integer :: ir,it,iv_loc_m,ic_loc_m,itor
+  integer :: iexch0,itor0,isplit0,iexch_base
+
+  real :: dv,dvr,rval,rval2
+  complex :: cprod,cprod2,thfac
+
+#if defined(OMPGPU)
+!$omp target teams distribute parallel do simd collapse(3)
+#elif defined(_OPENACC)
+!$acc parallel loop collapse(3) gang vector independent &
+!$acc&         present(triad_loc_old,triad_loc) &
+!$acc&         present(nt1,nt2,n_radial,n_species) default(none)
+#else
+!$omp parallel do private(ir,is)
+#endif
+  do itor=nt1,nt2
+      do ir=1,n_radial
+        do is=1,n_species
+          triad_loc_old(is,ir,itor,5) = triad_loc_old(is,ir,itor,3)
+          triad_loc_old(is,ir,itor,3) = triad_loc_old(is,ir,itor,1)
+          triad_loc_old(is,ir,itor,1) = 0.0
+
+          triad_loc_old(is,ir,itor,6) = triad_loc_old(is,ir,itor,4)
+          triad_loc_old(is,ir,itor,4) = triad_loc_old(is,ir,itor,2)
+          triad_loc_old(is,ir,itor,2) = 0.0
+          triad_loc(is,ir,itor,:) = 0.0
+        enddo
+      enddo
+  enddo
+
+! Avoiding memory race: inner loop must remain sequential (no vector collapse) - J
+  if (nsplitB > 0) then
+
+#if defined(OMPGPU)
+!$omp target teams distribute parallel collapse(2) &
+!$omp&         map(to:z,temp) &
+!$omp&         firstprivate(nt1,nt2,nv1,nv_loc,n_theta,n_radial,nsplit,nsplitA,nsplitB) &
+!$omp&         firstprivate(explicit_trap_flag,delta_t,up_theta) &
+!$omp&         firstprivate(box_size,sign_qs,nup_theta) &
+!$omp&         private(iterbox,jr0,jc,itd,itd_class,thfac) &
+!$omp&         default(none)
+  do itor=nt1,nt2
+    do ir=1,n_radial
+!$omp parallel do simd collapse(2) &
+!$omp& private(is,ix,ie,dv,dvr,cprod,cprod2,rval,rval2) &
+!$omp& private(iexch0,itor0,isplit0,iexch_base) &
+!$omp& private(id,ic_loc_m)
+#elif defined(_OPENACC)
+!$acc parallel loop gang collapse(2) &
+!$acc&         private(itorbox,jr0,jc,itd,itd_class,thfac) &
+!$acc&         present(h_x,g_x,cap_h_c,cap_h_c_old2,cap_h_c_triad,field,dvjvec_c,jvec_c) &
+!$acc&         present(ic_c,is_v,ix_v,ie_v,w_exi,w_theta,dens2_rot,z,temp) &
+!$acc&         present(omega_stream,vel,xi,thfac_itor,cderiv,uderiv) &
+!$acc&         present(px,rhs,fpackA,fpackB,epackA,epackB,diss_r,triad_loc,triad_loc_old) &
+!$acc&         present(nt1,nt2,nv_loc,n_theta,n_radial,nsplit,nsplitA,nsplitB) &
+!$acc&         firstprivate(delta_t,up_theta,nv1,box_size,sign_qs,nup_theta,explicit_trap_flag) &
+!$acc&         copyin(zf_scale) default(none)
+  do itor=nt1,nt2
+    do ir=1,n_radial
+!$acc loop seq collapse(2) &
+!$acc&         private(is,ix,ie,dv,dvr,cprod,cprod2,rval,rval2) &
+!$acc&         private(iexch0,itor0,isplit0,iexch_base) &
+!$acc&         private(id,ic_loc_m)
+#else
+!$omp parallel do collapse(2) private(ic_loc_m) &
+!$omp&         private(iexch0,itor0,isplit0,iexch_base,is,ix,ie,dv,dvr,rval,rval2,cprod,cprod2) &
+!$omp&         private(id,itorbox,jr0,jc,itd,itd_class,thfac)
+  do itor=nt1,nt2
+    do ir=1,n_radial
+#endif
+      do iv_loc_m=1,nv_loc
+        do it=1,n_theta
+           itorbox = itor*box_size*sign_qs
+           jr0(0) = n_theta*modulo(ir-itorbox-1,n_radial)
+           jr0(1) = n_theta*(ir-1)
+           jr0(2) = n_theta*modulo(ir+itorbox-1,n_radial)
+
+           ic_loc_m = ic_c(ir,it)
+
+           is = is_v(iv_loc_m +nv1 -1 )
+           ix = ix_v(iv_loc_m +nv1 -1 )
+           ie = ie_v(iv_loc_m +nv1 -1 )
+           dv = w_exi(ie,ix)
+           dvr  = w_theta(it)*dens2_rot(it,is)*dv
+
+           ! Density moment
+           cprod = w_theta(it)*cap_h_c(ic_loc_m,iv_loc_m,itor)*dvjvec_c(1,ic_loc_m,iv_loc_m,itor)/z(is)
+           cprod = -(dvr*z(is)/temp(is)*field(1,ic_loc_m,itor)-cprod)
+
+           iexch0 = (iv_loc_m-1) + (it-1)*nv_loc
+           itor0 = iexch0/nsplit
+           isplit0 = modulo(iexch0,nsplit)
+           if (isplit0 < nsplitA) then
+              iexch_base = 1+itor0*nsplitA
+
+              ! 1. Triad energy transfer (All)
+              triad_loc(is,ir,itor,1) = triad_loc(is,ir,itor,1) &
+                + fpackA(ir,itor-nt1+1,iexch_base+isplit0)*dvr
+              ! 2. Triad energy transfer ( {NZ-NZ} coupling , ky!=0)
+              if (itor == 0) then
+                ! Direct ZF production N
+                triad_loc(is,ir,itor,2) = triad_loc(is,ir,itor,2) &
+                  + epackA(ir,itor-nt1+1,iexch_base+isplit0)*dvr
+              else
+                triad_loc(is,ir,itor,2) = triad_loc(is,ir,itor,2) &
+                  + epackA(ir,itor-nt1+1,iexch_base+isplit0)*dvr
+              endif
+           else
+              iexch_base = 1+itor0*nsplitB
+
+              ! 1. Triad energy transfer (all)
+              triad_loc(is,ir,itor,1) = triad_loc(is,ir,itor,1) &
+                + fpackB(ir,itor-nt1+1,iexch_base+(isplit0-nsplitA))*dvr
+              ! 2. Triad energy transfer ( {NZ-NZ} coupling , ky!=0)
+              if (itor == 0) then
+                ! Direct ZF production N
+                triad_loc(is,ir,itor,2) = triad_loc(is,ir,itor,2)  &
+                  + epackB(ir,itor-nt1+1,iexch_base+(isplit0-nsplitA))*dvr
+              else
+                triad_loc(is,ir,itor,2) = triad_loc(is,ir,itor,2)  &
+                  + epackB(ir,itor-nt1+1,iexch_base+(isplit0-nsplitA))*dvr
+              endif
+           endif
+
+           cprod = - field(1,ic_loc_m,itor)*conjg(field(1,ic_loc_m,itor))*(z(is)/temp(is))**2*dvr &
+                - 2.0*cprod*conjg(field(1,ic_loc_m,itor))*(z(is)/temp(is))
+           cprod2  = cap_h_c(ic_loc_m,iv_loc_m,itor)*conjg(cap_h_c(ic_loc_m,iv_loc_m,itor))*dvr + cprod
+           ! . Entropy(df) - Entropy(dH)
+           triad_loc_old(is,ir,itor,1) = triad_loc_old(is,ir,itor,1)  + cprod
+           ! . Entropy(df)
+           triad_loc_old(is,ir,itor,2) = triad_loc_old(is,ir,itor,2)  + cprod2
+
+           ! 6. Diss. (radial)
+           triad_loc(is,ir,itor,6) = triad_loc(is,ir,itor,6)  &  
+                + diss_r(ic_loc_m,iv_loc_m,itor)*h_x(ic_loc_m,iv_loc_m,itor)*conjg(cap_h_c(ic_loc_m,iv_loc_m,itor))*dvr
+           ! 7. Diss. (theta )
+           rval = omega_stream(it,is,itor)*vel(ie)*xi(ix)
+           rval2 = abs(omega_stream(it,is,itor))
+           cprod = 0.0 
+           cprod2= 0.0
+
+          !icd_c(ic, id, itor)     = ic_c(jr,modulo(it+id-1,n_theta)+1)
+          !jc = icd_c(ic, id, itor)
+          !dtheta(ic, id, itor)    := cderiv(id)*thfac
+          !dtheta_up(ic, id, itor) := uderiv(id)*thfac*up_theta
+          itd = n_theta+it-nup_theta
+          itd_class = 0
+          jc = jr0(itd_class)+itd
+          thfac = 0.0
+
+           do id=-nup_theta,nup_theta
+              if (itd > n_theta) then
+                ! move to next itd_class of compute
+                itd = itd - n_theta
+                itd_class = itd_class + 1
+                jc = jr0(itd_class)+itd
+                thfac = -thfac_itor(itd_class,itor)*(itd_class - 2.0)
+              endif
+
+              ! Considering not periodic in theta simply by thfac = 0
+              cprod2 = cprod2 - rval* thfac*cderiv(id) *(cap_h_c(jc,iv_loc_m,itor) + cap_h_c_old2(jc,iv_loc_m,itor))*0.5
+              cprod = cprod - rval2* uderiv(id)*up_theta *g_x(jc,iv_loc_m,itor)
+              itd = itd + 1
+              jc = jc + 1
+           enddo 
+
+           triad_loc(is,ir,itor,7) = triad_loc(is,ir,itor,7) + cprod*conjg(cap_h_c(ic_loc_m,iv_loc_m,itor))*dvr
+           ! 8. Diss. (Coll. = Implicit advance - theta_streaming )
+           if (explicit_trap_flag == 1) then
+              triad_loc(is,ir,itor,8) = triad_loc(is,ir,itor,8) &
+                 + ( cap_h_c_triad(iv_loc_m,itor,ic_loc_m)/delta_t )*dvr
+           else 
+              triad_loc(is,ir,itor,8) = triad_loc(is,ir,itor,8) &
+                 + ( cap_h_c_triad(iv_loc_m,itor,ic_loc_m)/delta_t &
+                 + cprod2*conjg((cap_h_c(ic_loc_m,iv_loc_m,itor)+cap_h_c_old2(ic_loc_m,iv_loc_m,itor))*0.5) )*dvr
+           endif
+
+        enddo
+      enddo
+    enddo
+  enddo
+
+  else ! nsplitB==0
+
+#if defined(OMPGPU)
+!$omp target teams distribute parallel collapse(2) &
+!$omp&         map(to:z,temp) &
+!$omp&         firstprivate(nt1,nt2,nv1,nv_loc,n_theta,n_radial,nsplit,nsplitA) &
+!$omp&         firstprivate(explicit_trap_flag,delta_t,up_theta) &
+!$omp&         firstprivate(box_size,sign_qs,nup_theta) &
+!$omp&         private(iterbox,jr0,jc,itd,itd_class,thfac) &
+!$omp&         default(none)
+  do itor=nt1,nt2
+    do ir=1,n_radial
+!$omp parallel do simd collapse(2) &
+!$omp& private(is,ix,ie,dv,dvr,cprod,cprod2,rval,rval2) &
+!$omp& private(iexch0,itor0,isplit0,iexch_base) &
+!$omp& private(id,ic_loc_m)
+#elif defined(_OPENACC)
+!$acc parallel loop gang collapse(2) &
+!$acc&         private(itorbox,jr0,jc,itd,itd_class,thfac) &
+!$acc&         present(h_x,g_x,cap_h_c,cap_h_c_old2,cap_h_c_triad,field,dvjvec_c,jvec_c) &
+!$acc&         present(ic_c,is_v,ix_v,ie_v,w_exi,w_theta,dens2_rot,z,temp) &
+!$acc&         present(omega_stream,vel,xi,thfac_itor,cderiv,uderiv) &
+!$acc&         present(px,rhs,fpackA,fpackB,epackA,epackB,diss_r,triad_loc,triad_loc_old) &
+!$acc&         present(nt1,nt2,nv_loc,n_theta,n_radial,nsplit,nsplitA) &
+!$acc&         firstprivate(delta_t,up_theta,nv1,box_size,sign_qs,nup_theta,explicit_trap_flag) &
+!$acc&         copyin(zf_scale) default(none)
+  do itor=nt1,nt2
+    do ir=1,n_radial
+!$acc loop seq collapse(2) &
+!$acc&         private(is,ix,ie,dv,dvr,cprod,cprod2,rval,rval2) &
+!$acc&         private(iexch0,itor0,isplit0,iexch_base) &
+!$acc&         private(id,ic_loc_m)
+#else
+!$omp parallel do collapse(2) private(ic_loc_m) &
+!$omp&         private(iexch0,itor0,isplit0,iexch_base,is,ix,ie,dv,dvr,rval,rval2,cprod,cprod2) &
+!$omp&         private(id,itorbox,jr0,jc,itd,itd_class,thfac)
+  do itor=nt1,nt2
+    do ir=1,n_radial
+#endif
+      do iv_loc_m=1,nv_loc
+        do it=1,n_theta
+           itorbox = itor*box_size*sign_qs
+           jr0(0) = n_theta*modulo(ir-itorbox-1,n_radial)
+           jr0(1) = n_theta*(ir-1)
+           jr0(2) = n_theta*modulo(ir+itorbox-1,n_radial)
+
+           ic_loc_m = ic_c(ir,it)
+
+           is = is_v(iv_loc_m +nv1 -1 )
+           ix = ix_v(iv_loc_m +nv1 -1 )
+           ie = ie_v(iv_loc_m +nv1 -1 )
+           dv = w_exi(ie,ix)
+           dvr  = w_theta(it)*dens2_rot(it,is)*dv
+
+           ! Density moment
+           cprod = w_theta(it)*cap_h_c(ic_loc_m,iv_loc_m,itor)*dvjvec_c(1,ic_loc_m,iv_loc_m,itor)/z(is)
+           cprod = -(dvr*z(is)/temp(is)*field(1,ic_loc_m,itor)-cprod)
+
+           iexch0 = (iv_loc_m-1) + (it-1)*nv_loc
+           itor0 = iexch0/nsplit
+           isplit0 = modulo(iexch0,nsplit)
+           iexch_base = 1+itor0*nsplitA     
+
+           ! 1. Triad energy transfer (all)
+           triad_loc(is,ir,itor,1) = triad_loc(is,ir,itor,1) &
+              + fpackA(ir,itor-nt1+1,iexch_base+isplit0)*dvr
+           ! 2. Triad energy transfer ( {NZ-NZ} coupling , ky!=0)
+           if (itor == 0) then
+             ! Direct ZF production N
+             triad_loc(is,ir,itor,2) = triad_loc(is,ir,itor,2) &
+               + epackA(ir,itor-nt1+1,iexch_base+isplit0)*dvr
+           else
+             triad_loc(is,ir,itor,2) = triad_loc(is,ir,itor,2) &
+               + epackA(ir,itor-nt1+1,iexch_base+isplit0)*dvr
+           endif
+
+           cprod = - field(1,ic_loc_m,itor)*conjg(field(1,ic_loc_m,itor))*(z(is)/temp(is))**2*dvr &
+                - 2.0*cprod*conjg(field(1,ic_loc_m,itor))*(z(is)/temp(is))
+           cprod2  = cap_h_c(ic_loc_m,iv_loc_m,itor)*conjg(cap_h_c(ic_loc_m,iv_loc_m,itor))*dvr + cprod
+           ! . Entropy(df) - Entropy(dH)
+           triad_loc_old(is,ir,itor,1) = triad_loc_old(is,ir,itor,1)  + cprod
+           ! . Entropy(df)
+           triad_loc_old(is,ir,itor,2) = triad_loc_old(is,ir,itor,2)  + cprod2
+
+
+           ! 6. Diss. (radial)
+           triad_loc(is,ir,itor,6) = triad_loc(is,ir,itor,6)  &  
+                + diss_r(ic_loc_m,iv_loc_m,itor)*h_x(ic_loc_m,iv_loc_m,itor)*conjg(cap_h_c(ic_loc_m,iv_loc_m,itor))*dvr
+           ! 7. Diss. (theta )
+           rval = omega_stream(it,is,itor)*vel(ie)*xi(ix)
+           rval2 = abs(omega_stream(it,is,itor))
+           cprod = 0.0 
+           cprod2= 0.0
+
+          !icd_c(ic, id, itor)     = ic_c(jr,modulo(it+id-1,n_theta)+1)
+          !jc = icd_c(ic, id, itor)
+          !dtheta(ic, id, itor)    := cderiv(id)*thfac
+          !dtheta_up(ic, id, itor) := uderiv(id)*thfac*up_theta
+          itd = n_theta+it-nup_theta
+          itd_class = 0
+          jc = jr0(itd_class)+itd
+          thfac = 0.0
+
+           do id=-nup_theta,nup_theta
+              if (itd > n_theta) then
+                ! move to next itd_class of compute
+                itd = itd - n_theta
+                itd_class = itd_class + 1
+                jc = jr0(itd_class)+itd
+                thfac = -thfac_itor(itd_class,itor)*(itd_class - 2.0)
+              endif
+
+              ! Considering not periodic in theta simply by thfac = 0
+              cprod2 = cprod2 - rval* thfac*cderiv(id) *(cap_h_c(jc,iv_loc_m,itor)+cap_h_c_old2(jc,iv_loc_m,itor))*0.5
+              cprod = cprod - rval2* uderiv(id)*up_theta *g_x(jc,iv_loc_m,itor)
+              itd = itd + 1
+              jc = jc + 1
+           enddo 
+
+           triad_loc(is,ir,itor,7) = triad_loc(is,ir,itor,7) + cprod*conjg(cap_h_c(ic_loc_m,iv_loc_m,itor))*dvr
+           ! 8. Diss. (Coll. = Implicit advance - theta_streaming )
+           if (explicit_trap_flag == 1) then
+              triad_loc(is,ir,itor,8) = triad_loc(is,ir,itor,8) &
+                 + ( cap_h_c_triad(iv_loc_m,itor,ic_loc_m)/delta_t )*dvr
+           else 
+              triad_loc(is,ir,itor,8) = triad_loc(is,ir,itor,8) &
+                 + ( cap_h_c_triad(iv_loc_m,itor,ic_loc_m)/delta_t &
+                 + cprod2*conjg((cap_h_c(ic_loc_m,iv_loc_m,itor)+cap_h_c_old2(ic_loc_m,iv_loc_m,itor))*0.5) )*dvr
+           endif
+
+        enddo
+      enddo
+    enddo
+  enddo
+
+  endif ! if nsplitB>0
+
+
+! Compute Time difference
+
+#if defined(OMPGPU)
+!$omp target teams distribute parallel do simd collapse(3)
+#elif defined(_OPENACC)
+!$acc parallel loop collapse(3) gang vector independent &
+!$acc&         present(triad_loc_old,triad_loc) &
+!$acc&         present(nt1,nt2,n_radial,n_species) default(none)
+#else
+!$omp parallel do private(ir,is)
+#endif
+  do itor=nt1,nt2
+      do ir=1,n_radial
+        do is=1,n_species
+          ! 3. dEntropy / dt
+          triad_loc(is,ir,itor,3) = &
+          (triad_loc_old(is,ir,itor,6) - 4*triad_loc_old(is,ir,itor,4) + 3*triad_loc_old(is,ir,itor,2))/(2*delta_t)*0.5
+          ! 4. dEM field /dt    ,  remaining term will be added in cgyro_flux 
+          triad_loc(is,ir,itor,4) = &
+          (triad_loc_old(is,ir,itor,5) - 4*triad_loc_old(is,ir,itor,3) + 3*triad_loc_old(is,ir,itor,1))/(2*delta_t)*0.5
+          ! 5. Entropy 
+          triad_loc(is,ir,itor,5) = triad_loc_old(is,ir,itor,2)*0.5
+        enddo
+      enddo
+  enddo
+
+
+end subroutine cgyro_triad_diagnostics

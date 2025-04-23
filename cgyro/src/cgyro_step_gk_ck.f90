@@ -80,11 +80,11 @@ subroutine cgyro_step_gk_ck
      call cgyro_rhs_comm_async_hx
      if (is_first) then
         ! fields already in good shape in the beginning
-        call cgyro_rhs(1,.FALSE.)
+        call cgyro_rhs(1,.FALSE.,.FALSE.)
         is_first = .FALSE.
      else
         call cgyro_field_c(.FALSE.)
-        call cgyro_rhs(1,.TRUE.)
+        call cgyro_rhs(1,.TRUE.,.FALSE.)
      endif
 
      call timer_lib_in('str')
@@ -93,7 +93,7 @@ subroutine cgyro_step_gk_ck
 
      call cgyro_rhs_comm_async_hx
      call cgyro_field_c(.FALSE.)
-     call cgyro_rhs(2,.TRUE.)
+     call cgyro_rhs(2,.TRUE.,.FALSE.)
 
      call timer_lib_in('str')
      call cgyro_vel_fma3(h_x, &
@@ -104,7 +104,7 @@ subroutine cgyro_step_gk_ck
 
      call cgyro_rhs_comm_async_hx
      call cgyro_field_c(.FALSE.)
-     call cgyro_rhs(3,.TRUE.)
+     call cgyro_rhs(3,.TRUE.,.FALSE.)
 
      call timer_lib_in('str')
      call cgyro_vel_fmaN(3, h_x, &
@@ -117,7 +117,7 @@ subroutine cgyro_step_gk_ck
 
      call cgyro_rhs_comm_async_hx
      call cgyro_field_c(.FALSE.)
-     call cgyro_rhs(4,.TRUE.) 
+     call cgyro_rhs(4,.TRUE.,.FALSE.) 
 
      call timer_lib_in('str')
      call cgyro_vel_fmaN(4, h_x, &
@@ -131,7 +131,7 @@ subroutine cgyro_step_gk_ck
 
      call cgyro_rhs_comm_async_hx
      call cgyro_field_c(.FALSE.)
-     call cgyro_rhs(5,.TRUE.)
+     call cgyro_rhs(5,.TRUE.,.FALSE.)
 
      call timer_lib_in('str')
      call cgyro_vel_fmaN(5, h_x, &
@@ -146,7 +146,7 @@ subroutine cgyro_step_gk_ck
 
      call cgyro_rhs_comm_async_hx
      call cgyro_field_c(.FALSE.)
-     call cgyro_rhs(6,.TRUE.)
+     call cgyro_rhs(6,.TRUE.,.TRUE.)
 
      !-------------------
      ! SOLUTION and ERROR

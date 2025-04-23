@@ -27,7 +27,7 @@ subroutine cgyro_step_gk
 
   
   ! Stage 1
-  call cgyro_rhs(1,.FALSE.)
+  call cgyro_rhs(1,.FALSE.,.FALSE.)
   call timer_lib_in('str')
   call cgyro_vel_fma2(h_x, h0_x, 0.5 * delta_t, rhs(:,:,:,1))
   call timer_lib_out('str')
@@ -35,7 +35,7 @@ subroutine cgyro_step_gk
   ! Stage 2
   call cgyro_rhs_comm_async_hx
   call cgyro_field_c(.FALSE.)
-  call cgyro_rhs(2,.TRUE.)
+  call cgyro_rhs(2,.TRUE.,.FALSE.)
   call timer_lib_in('str')
   call cgyro_vel_fma2(h_x, h0_x, 0.5 * delta_t, rhs(:,:,:,2))
   call timer_lib_out('str')
@@ -43,7 +43,7 @@ subroutine cgyro_step_gk
   ! Stage 3
   call cgyro_rhs_comm_async_hx
   call cgyro_field_c(.FALSE.)
-  call cgyro_rhs(3,.TRUE.)
+  call cgyro_rhs(3,.TRUE.,.FALSE.)
   call timer_lib_in('str')
   call cgyro_vel_fma2(h_x, h0_x, delta_t, rhs(:,:,:,3))
   call timer_lib_out('str')
@@ -51,7 +51,7 @@ subroutine cgyro_step_gk
   ! Stage 4
   call cgyro_rhs_comm_async_hx
   call cgyro_field_c(.FALSE.)
-  call cgyro_rhs(4,.TRUE.)
+  call cgyro_rhs(4,.TRUE.,.TRUE.)
 
   ! rhs(1) = 3rd-order error estimate
   ! h_x = h0_x + c1*r(1) + c2*r(2) + c3*r(3) + c4*r(4)

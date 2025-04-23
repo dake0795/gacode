@@ -206,8 +206,9 @@ subroutine cgyro_init_manager
 #endif
      if (triad_print_flag == 1) then
         allocate(    triad(n_species,n_radial,nt1:nt2,8))
-        allocate(triad_loc(n_species,n_radial,nt1:nt2,7))
-        allocate(triad_loc_old(n_species,n_radial,nt1:nt2,8))
+        allocate(triad_loc(n_species,n_radial,nt1:nt2,8))
+        allocate(triad_loc_old(n_species,n_radial,nt1:nt2,6))
+        triad_exec_flag=0
 #if defined(OMPGPU)
 !$omp target enter data map(alloc:triad,triad_loc,triad_loc_old)
 #elif defined(_OPENACC)

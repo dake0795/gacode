@@ -120,6 +120,11 @@ subroutine cgyro_kernel
      call cgyro_error_estimate
      ! Exit if error too large
      if (error_status > 0) exit
+
+     ! Triad estimate
+     if (any(mod((/i_time, i_time+1, i_time+2/), print_step) == 0) .and. triad_print_flag == 1) then
+         call cgyro_triad_estimate(mod(i_time+1,print_step))
+     endif
      !------------------------------------------------------------
 
      !---------------------------------------
@@ -137,9 +142,9 @@ subroutine cgyro_kernel
 #endif
        if (triad_print_flag == 1) then
 #if defined(OMPGPU)
-!$omp target update from(triad_loc,triad_loc_old)
+!$omp target update from(triad_loc)
 #elif defined(_OPENACC)
-!$acc update host(triad_loc,triad_loc_old)
+!$acc update host(triad_loc)
 #endif
        endif
        call timer_lib_out('coll_mem')

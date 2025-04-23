@@ -141,11 +141,11 @@ subroutine cgyro_step_gk_v76
      call cgyro_rhs_comm_async_hx
      if (is_first) then
         ! fields already in good shape in the beginning
-        call cgyro_rhs(1,.FALSE.)
+        call cgyro_rhs(1,.FALSE.,.FALSE.)
         is_first = .FALSE.
      else
         call cgyro_field_c(.FALSE.)
-        call cgyro_rhs(1,.TRUE.)
+        call cgyro_rhs(1,.TRUE.,.FALSE.)
      endif
 
      call timer_lib_in('str')
@@ -154,7 +154,7 @@ subroutine cgyro_step_gk_v76
 
      call cgyro_rhs_comm_async_hx
      call cgyro_field_c(.FALSE.)
-     call cgyro_rhs(2,.TRUE.)
+     call cgyro_rhs(2,.TRUE.,.FALSE.)
 
      call timer_lib_in('str')
      call cgyro_vel_fmaN(2,h_x, &
@@ -167,7 +167,7 @@ subroutine cgyro_step_gk_v76
      call cgyro_field_c(.FALSE.)
 
      ! rhs(*,2) is not used again, so shift down all the subsequent indexes
-     call cgyro_rhs(3-1,.TRUE.)
+     call cgyro_rhs(3-1,.TRUE.,.FALSE.)
      
      call timer_lib_in('str')
      call cgyro_vel_fmaN(2,h_x, &
@@ -178,7 +178,7 @@ subroutine cgyro_step_gk_v76
 
      call cgyro_rhs_comm_async_hx
      call cgyro_field_c(.FALSE.)
-     call cgyro_rhs(4-1,.TRUE.)
+     call cgyro_rhs(4-1,.TRUE.,.FALSE.)
 
      call timer_lib_in('str')
      call cgyro_vel_fmaN(3,h_x, &
@@ -189,7 +189,7 @@ subroutine cgyro_step_gk_v76
 
      call cgyro_rhs_comm_async_hx
      call cgyro_field_c(.FALSE.)
-     call cgyro_rhs(5-1,.TRUE.)
+     call cgyro_rhs(5-1,.TRUE.,.FALSE.)
 
      call timer_lib_in('str')
      call cgyro_vel_fmaN(4,h_x, &
@@ -200,7 +200,7 @@ subroutine cgyro_step_gk_v76
 
      call cgyro_rhs_comm_async_hx
      call cgyro_field_c(.FALSE.)
-     call cgyro_rhs(6-1,.TRUE.)
+     call cgyro_rhs(6-1,.TRUE.,.FALSE.)
 
      call timer_lib_in('str')
      call cgyro_vel_fmaN(5,h_x, &
@@ -211,7 +211,7 @@ subroutine cgyro_step_gk_v76
      
      call cgyro_rhs_comm_async_hx
      call cgyro_field_c(.FALSE.)
-     call cgyro_rhs(7-1,.TRUE.)
+     call cgyro_rhs(7-1,.TRUE.,.FALSE.)
 
      call timer_lib_in('str')
      call cgyro_vel_fmaN(6,h_x, &
@@ -223,7 +223,7 @@ subroutine cgyro_step_gk_v76
 
      call cgyro_rhs_comm_async_hx
      call cgyro_field_c(.FALSE.)
-     call cgyro_rhs(8-1,.TRUE.)
+     call cgyro_rhs(8-1,.TRUE.,.FALSE.)
 
      call timer_lib_in('str')
      call cgyro_vel_fmaN(7,h_x, &
@@ -235,7 +235,7 @@ subroutine cgyro_step_gk_v76
 
      call cgyro_rhs_comm_async_hx
      call cgyro_field_c(.FALSE.)
-     call cgyro_rhs(9-1,.TRUE.)
+     call cgyro_rhs(9-1,.TRUE.,.FALSE.)
      
      call timer_lib_in('str')
      call cgyro_vel_fmaN(6,h_x, &
@@ -247,7 +247,7 @@ subroutine cgyro_step_gk_v76
 
      call cgyro_rhs_comm_async_hx
      call cgyro_field_c(.FALSE.)
-     call cgyro_rhs(10-1,.TRUE.)
+     call cgyro_rhs(10-1,.TRUE.,.TRUE.)
 
      !-------------------
      ! SOLUTION and ERROR

@@ -26,16 +26,17 @@ subroutine cgyro_rhs_comm_async_fd
 
 end subroutine cgyro_rhs_comm_async_fd
 
-subroutine cgyro_rhs_r_comm_async(ij)
+subroutine cgyro_rhs_r_comm_async(ij,last_flag)
   use cgyro_nl_comm
   use cgyro_globals
 
   implicit none
 
   integer, intent(in) :: ij
+  logical, intent(in) :: last_flag
 
   if (nonlinear_flag == 1) then
-     if (triad_print_flag == 1 .and. ij == 3) then
+     if (triad_exec_flag == 1 .and. last_flag) then
         call cgyro_nl_fftw_comm1_r_triad(ij)
      else
         call cgyro_nl_fftw_comm1_r(ij)
@@ -383,7 +384,7 @@ end subroutine cgyro_rhs_trap
 
 #endif
 
-subroutine cgyro_rhs(ij,update_cap)
+subroutine cgyro_rhs(ij,update_cap,last_flag)
 
   use timer_lib
   use cgyro_globals
@@ -392,7 +393,7 @@ subroutine cgyro_rhs(ij,update_cap)
   implicit none
 
   integer, intent(in) :: ij
-  logical, intent(in) :: update_cap
+  logical, intent(in) :: update_cap,last_flag
   !--------------------------------
   integer :: i_triad
 
@@ -415,7 +416,7 @@ subroutine cgyro_rhs(ij,update_cap)
   ! Nonlinear evaluation [f,g]
   if (nonlinear_flag == 1) then
      i_triad=0
-     if (triad_print_flag == 1 .and. ij == 3) then
+     if (triad_exec_flag == 1 .and. last_flag) then
        i_triad=1
      endif
      ! assumes someone already started the input comm
@@ -432,7 +433,7 @@ subroutine cgyro_rhs(ij,update_cap)
   call cgyro_rhs_trap(ij)
 
   ! updates rhs
-  call cgyro_rhs_r_comm_async(ij)
+  call cgyro_rhs_r_comm_async(ij,last_flag)
 
 end subroutine cgyro_rhs
 

@@ -80,7 +80,7 @@ module cgyro_globals
   integer :: moment_print_flag
   integer :: gflux_print_flag
   integer :: field_print_flag
-  integer :: triad_print_flag
+  integer :: triad_print_flag,triad_exec_flag
   real :: amp0
   real :: amp
   real :: gamma_e
