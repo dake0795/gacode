@@ -29,9 +29,11 @@ for d0 in dirs:
 n = len(k)
 i = np.argsort(k)
 
-w1 = [] ; g1 = [] ; k1 = []
-w2 = [] ; g2 = [] ; k2 = []
-w3 = [] ; g3 = [] ; k3 = []
+# (modes,points)
+km = np.zeros([4,32])
+g = np.zeros([4,32])
+w = np.zeros([4,32])
+p = np.zeros([4],dtype=int)
 
 indx = np.genfromtxt('indx',dtype=int)
    
@@ -39,50 +41,18 @@ for j,i0 in enumerate(i):
    data = np.genfromtxt(d[i0]+'/out.cgyro.dmd',comments='#')
    z = data.flatten()
    n = len(z)//3
-   
-   i1 = indx[j,0]
-   if i1 == 1:
-      g1.append(z[0]) ; w1.append(z[1]) ; k1.append(k[i0])
-   if i1 == 2:
-      g2.append(z[0]) ; w2.append(z[1]) ; k2.append(k[i0])
-   if i1 == 3:
-      g3.append(z[0]) ; w3.append(z[1]) ; k3.append(k[i0])
 
-   if n > 1:
-      i2 = indx[j,1]
-      if i2 == 1:
-         g1.append(z[3]) ; w1.append(z[4]) ; k1.append(k[i0])
-      if i2 == 2:
-         g2.append(z[3]) ; w2.append(z[4]) ; k2.append(k[i0])
-      if i2 == 3:
-         g3.append(z[3]) ; w3.append(z[4]) ; k3.append(k[i0])
+   for mode in range(n):
+      i1 = indx[j,mode]-1
+      g[i1,p[i1]]  = z[3*mode]
+      w[i1,p[i1]]  = z[3*mode+1] 
+      km[i1,p[i1]] = k[i0]
+      p[i1] += 1
 
-   if n > 2:
-      i3 = indx[j,2]
-      if i3 == 1:
-         g1.append(z[6]) ; w1.append(z[7]) ; k1.append(k[i0])
-      if i3 == 2:
-         g2.append(z[6]) ; w2.append(z[7]) ; k2.append(k[i0])
-      if i3 == 3:
-         g3.append(z[6]) ; w3.append(z[7]) ; k3.append(k[i0])
-
-f = open('mode1','w')
-for i in range(len(k1)):
-   data = (k1[i],w1[i],g1[i])
-   str1 = '{:.5f}  {:+.5f}  {:.5f} \n'.format(*data)
-   f.write(str1)
-f.close()
-
-f = open('mode2','w')
-for i in range(len(k2)):
-   data = (k2[i],w2[i],g2[i])
-   str1 = '{:.5f}  {:+.5f}  {:.5f} \n'.format(*data)
-   f.write(str1)
-f.close()
-
-f = open('mode3','w')
-for i in range(len(k3)):
-   data = (k3[i],w3[i],g3[i])
-   str1 = '{:.5f}  {:+.5f}  {:.5f} \n'.format(*data)
-   f.write(str1)
-f.close()
+for branch in range(3):
+   f = open('mode'+str(branch),'w')
+   for i in range(p[branch]):
+      data = (km[branch,i],w[branch,i],g[branch,i])
+      str1 = '{:.5f}  {:+.5f}  {:.5f} \n'.format(*data)
+      f.write(str1)
+   f.close()
