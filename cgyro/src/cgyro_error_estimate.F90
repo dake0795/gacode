@@ -268,7 +268,7 @@ subroutine cgyro_triad_setup
 !$acc&         private(ic_loc_m)
 #else
 !$omp parallel do collapse(2) private(ic_loc_m) &
-!$omp&         private(is,ix,ie,dv,dvr,cprod,cprod2) &
+!$omp&         private(is,ix,ie,dv,dvr,cprod,cprod2)
   do itor=nt1,nt2
     do ir=1,n_radial
 #endif
