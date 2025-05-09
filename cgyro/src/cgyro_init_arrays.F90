@@ -346,7 +346,7 @@ subroutine cgyro_init_arrays
   enddo
 
   if (n_field > 1) deallocate(sum_cur_x)
-  deallocate(sum_den_x)
+  !deallocate(sum_den_x)
 
   !-------------------------------------------------------------------------
 
