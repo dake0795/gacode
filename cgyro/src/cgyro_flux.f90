@@ -47,7 +47,7 @@ subroutine cgyro_flux
   
 !$omp parallel do private(iv_loc,iv,is,ix,ie,dv,vpar,ic,ir,it,erot,cprod,cn) &
 !$omp&            private(prod1,prod2,prod3,l,icl,dvr,u,flux_norm) &
-!$omp&            shared(moment_loc,gflux_loc,cflux_loc)
+!$omp&            shared(moment_loc,gflux_loc,cflux_loc,triad_loc,triad_loc_old)
   do itor=nt1,nt2
 
      !-----------------------------------------------------
