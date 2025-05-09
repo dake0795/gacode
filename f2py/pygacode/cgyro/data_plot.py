@@ -676,8 +676,15 @@ class cgyrodata_plot(data.cgyrodata):
       f = self.triad[0,:,:,:,:,:].sum(axis=0)
       # 0- Triad , 1- non-zonal pairs Triad , 2- d(Entropy)/dt, 3- W_k_{perp}/dt, 4- Entropy
       # 5- Diss.(radial) , 6- Diss.(theta) , 7- Diss.(Collision)
+      # 8,9,10 WE_lam, WE_pol, EM
       Ent = f[:,4,:,:]
       Ent_avg = Ent[:,:,imin:imax].mean(axis=2)
+      We_lam = f[:,8,:,:]
+      We_lam_avg = We_lam[:,:,imin:imax].mean(axis=2)
+      We_pol = f[:,9,:,:]
+      We_pol_avg = We_pol[:,:,imin:imax].mean(axis=2)
+      Wm = f[:,10,:,:]
+      Wm_avg = Wm[:,:,imin:imax].mean(axis=2)
 
       if xin['fig'] is None:
          fig = plt.figure(MYDIR,figsize=(xin['lx'],xin['ly']))

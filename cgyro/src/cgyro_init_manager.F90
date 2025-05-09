@@ -205,8 +205,8 @@ subroutine cgyro_init_manager
 !$acc enter data create(fcoef,gcoef,field,field_loc,source)
 #endif
      if (triad_print_flag == 1) then
-        allocate(    triad(n_species,n_radial,nt1:nt2,8))
-        allocate(triad_loc(n_species,n_radial,nt1:nt2,8))
+        allocate(    triad(n_species,n_radial,nt1:nt2,11))
+        allocate(triad_loc(n_species,n_radial,nt1:nt2,11))
         allocate(triad_loc_old(n_species,n_radial,nt1:nt2,6))
         triad_exec_flag=0
 #if defined(OMPGPU)

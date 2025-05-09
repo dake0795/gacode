@@ -193,6 +193,25 @@ subroutine cgyro_flux
 
      enddo
 
+     ! W_E/(n_e T_e) = 1/2 < [k_perp^2 lam_D^2 + sum (e^2 n/T) (1-Gamma_0) ] |e phi/Te|^2 >
+     ! W_M/(n_e T_e) = < k_perp^2 rho_D^2 |(cs/c) e A_par/Te|^2 > / beta
+     if (triad_print_flag == 1) then
+        do ic=1,nc
+           ir = ir_c(ic)
+           it = it_c(ic)
+           triad_loc(:,ir,itor,9) = 0.5*k_perp(ic,itor)**2*lambda_debye**2*dens_ele/temp_ele &
+                * w_theta(it) * abs(field(1,ic,itor))**2
+           triad_loc(:,ir,itor,10) = 0.5*sum_den_x(ic,itor) &
+                * w_theta(it) * abs(field(1,ic,itor))**2
+           if(n_field > 1) then
+              triad_loc(:,ir,itor,11) = k_perp(ic,itor)**2 * rho**2/betae_unit*dens_ele*temp_ele &
+                   * w_theta(it) * abs(field(2,ic,itor))**2
+           else
+              triad_loc(:,ir,itor,11) = 0.0
+           endif
+        enddo
+     endif
+
      ! Construct "positive/interior" flux (real quantities)
      cflux_loc(:,:,:,itor) = real(gflux_loc(0,:,:,:,itor))
      do l=1,n_global
@@ -223,6 +242,12 @@ subroutine cgyro_flux
         ! triad_loc(is,:,itor,7)
         ! Diss. (Coll. )  :  D_coll
         ! triad_loc(is,:,itor,8)
+        ! W_E (lam_D)
+        ! triad_loc(is,:,itor,9)
+        ! W_E (polarization)  
+        ! triad_loc(is,:,itor,10)
+        ! W_M  
+        ! triad_loc(is,:,itor,11)  
 
           triad_loc(is,:,itor,:) = triad_loc(is,:,itor,:) *temp(is)/dlntdr(is_ele)
       enddo
