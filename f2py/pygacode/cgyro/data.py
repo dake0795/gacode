@@ -311,8 +311,8 @@ class cgyrodata:
       t,fmt,data = self.extract('.cgyro.triad')
       
       if fmt != 'null':
-        nd = 2*self.n_n*self.n_radial*self.n_species*nt*8
-        self.triad = np.reshape(data[0:nd],(2,self.n_species,self.n_radial,8,self.n_n,nt),'F')
+        nd = 2*self.n_n*self.n_radial*self.n_species*nt*11
+        self.triad = np.reshape(data[0:nd],(2,self.n_species,self.n_radial,11,self.n_n,nt),'F')
         if not self.silent:
          print('INFO: (data.py) Read data in '+fmt+'.cgyro.triad.   '+t)
 

@@ -672,19 +672,13 @@ class cgyrodata_plot(data.cgyrodata):
       mpre,mwin = wintxt(imin,imax,t,fc=1,field=field)
 
       self.getbigfield()
-
+      
       f = self.triad[0,:,:,:,:,:].sum(axis=0)
       # 0- Triad , 1- non-zonal pairs Triad , 2- d(Entropy)/dt, 3- W_k_{perp}/dt, 4- Entropy
       # 5- Diss.(radial) , 6- Diss.(theta) , 7- Diss.(Collision)
       # 8,9,10 WE_lam, WE_pol, EM
       Ent = f[:,4,:,:]
       Ent_avg = Ent[:,:,imin:imax].mean(axis=2)
-      We_lam = f[:,8,:,:]
-      We_lam_avg = We_lam[:,:,imin:imax].mean(axis=2)
-      We_pol = f[:,9,:,:]
-      We_pol_avg = We_pol[:,:,imin:imax].mean(axis=2)
-      Wm = f[:,10,:,:]
-      Wm_avg = Wm[:,:,imin:imax].mean(axis=2)
 
       if xin['fig'] is None:
          fig = plt.figure(MYDIR,figsize=(xin['lx'],xin['ly']))
@@ -742,7 +736,61 @@ class cgyrodata_plot(data.cgyrodata):
 
       return head
 
+   def plot_triad_w(self,xin):
+      # EAB
+      w       = xin['w']
+      theta   = xin['theta']
+      field   = xin['field']
+      ymin    = xin['ymin']
+      ymax    = xin['ymax']
+      absnorm = xin['abs']
+      moment  = xin['moment']
 
+      t = self.getnorm(xin['norm'])
+      ky = self.kynorm
+      nx = self.n_radial
+
+      imin,imax=time_index(t,w) 
+      mpre,mwin = wintxt(imin,imax,t,fc=1,field=field)
+
+      self.getbigfield()
+
+      # 0- Triad , 1- non-zonal pairs Triad , 2- d(Entropy)/dt, 3- W_k_{perp}/dt, 4- Entropy
+      # 5- Diss.(radial) , 6- Diss.(theta) , 7- Diss.(Collision)
+      # 8,9,10 WE_lam, WE_pol, EM
+      #triad(2,sp,rad,11,n_n,n_t) --> f(n_t,ntime)
+      f = np.sum(self.triad[0,0,:,8,:,:],axis=0)
+      ave_we1 = time_average(f[:,:],t,imin,imax)
+      f = np.sum(self.triad[0,0,:,9,:,:],axis=0)
+      ave_we2 = time_average(f[:,:],t,imin,imax)
+      f = np.sum(self.triad[0,0,:,10,:,:],axis=0)
+      ave_wm = time_average(f[:,:],t,imin,imax)
+      f = np.sum(self.triad[0,:,:,4,:,:],axis=(0,1))
+      ave_en = time_average(f[:,:],t,imin,imax)
+
+      if xin['fig'] is None:
+         fig = plt.figure(MYDIR,figsize=(xin['lx'],xin['ly']))
+      #======================================
+      # Set figure size and axes
+      ax = fig.add_subplot(111)
+      ax.grid(which="both",ls=":")
+      ax.grid(which="major",ls=":")
+      ax.set_xlabel(r'$k_\theta \rho_s$')
+      ax.set_ylabel(r'$W$')
+      ax.set_title('W'+mwin,fontsize=16)
+      ax.semilogy(ky[:],ave_en[:],'*',label=r'$S$',color='k',markersize=4,linestyle='-')
+      ax.semilogy(ky[:],ave_we1[:],'o',label=r'$W_{E,\lambda}$',color='r',markersize=4,linestyle='-')
+      ax.semilogy(ky[:],ave_we2[:],'s',label=r'$W_{E,pol}$',color='b',markersize=4,linestyle='-')
+      ax.semilogy(ky[:],ave_wm[:],'^',label=r'$W_M$',color='g',markersize=4,linestyle='-')
+      ax.legend(loc=1,handlelength=1)
+      fig.tight_layout(pad=0.4)
+      print(ave_en[:])
+      print(ave_we1[:])
+      print(ave_we2[:])
+      print(ave_wm[:])
+      #======================================
+
+   
    def plot_flux(self,xin):
       
       w      = xin['w']

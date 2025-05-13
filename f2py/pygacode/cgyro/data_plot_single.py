@@ -96,7 +96,11 @@ elif plot_type == 'triad_v2':
 elif plot_type == 'triad_v3':
 
    head = data_in.plot_triad_v3(xin)
+   
+elif plot_type == 'triad_w':
 
+   head = data_in.plot_triad_w(xin)
+   
 elif plot_type == 'flux':
 
    if ftype == 'nox' or ftype == 'dump':
