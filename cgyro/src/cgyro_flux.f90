@@ -196,6 +196,9 @@ subroutine cgyro_flux
      ! W_E/(n_e T_e) = 1/2 < [k_perp^2 lam_D^2 + sum (e^2 n/T) (1-Gamma_0) ] |e phi/Te|^2 >
      ! W_M/(n_e T_e) = < k_perp^2 rho_D^2 |(cs/c) e A_par/Te|^2 > / beta
      if (triad_print_flag == 1) then
+        triad_loc(:,:,:,9) = 0.0
+        triad_loc(:,:,:,10) = 0.0
+        triad_loc(:,:,:,11) = 0.0
         do ic=1,nc
            ir = ir_c(ic)
            it = it_c(ic)
@@ -206,8 +209,6 @@ subroutine cgyro_flux
            if(n_field > 1) then
               triad_loc(:,ir,itor,11) = k_perp(ic,itor)**2 * rho**2/betae_unit*dens_ele*temp_ele &
                    * w_theta(it) * abs(field(2,ic,itor))**2
-           else
-              triad_loc(:,ir,itor,11) = 0.0
            endif
         enddo
      endif
