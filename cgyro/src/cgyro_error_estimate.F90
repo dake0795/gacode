@@ -639,7 +639,7 @@ subroutine cgyro_triad_diagnostics
 #elif defined(_OPENACC)
 !$acc parallel loop collapse(3) gang vector independent &
 !$acc&         present(triad_loc_old,triad_loc) &
-!$acc&         present(nt1,nt2,n_radial,n_species) default(none)
+!$acc&         firstprivate(nt1,nt2,n_radial,n_species,delta_t) default(none)
 #else
 !$omp parallel do private(ir,is)
 #endif
