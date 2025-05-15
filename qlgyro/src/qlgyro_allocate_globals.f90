@@ -10,8 +10,6 @@ subroutine qlgyro_allocate_globals
   if (.not. allocated(dlntidr)) allocate(dlntidr(n_ion_max))
   if (.not. allocated(ni)) allocate(ni(n_ion_max))
   if (.not. allocated(dlnnidr)) allocate(dlnnidr(n_ion_max))
-
-  if (.not. allocated(a_fourier_geo)) allocate(a_fourier_geo(8,0:32))
   
   pi = 4.0*atan(1.0)
   !

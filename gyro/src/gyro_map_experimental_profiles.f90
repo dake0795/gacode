@@ -77,16 +77,6 @@ subroutine gyro_map_experimental_profiles
 
   call cub_spline(r_p,beta_unit_p,n_grid_exp,r_s,beta_unit_s,n_x)
   call cub_spline(r_p,beta_unit_ptot_p,n_grid_exp,r_s,beta_unit_ptot_s,n_x)
-
-  if (num_equil_flag == 1) then
-     do j1=1,8
-        do j2=0,n_fourier_geo
-           call cub_spline(r_p,geo_p(j1,j2,:),n_grid_exp,r_s,a_fourier_geo_s(j1,j2,:),n_x)
-        enddo
-     enddo
-  else
-     a_fourier_geo_s(:,:,:) = 0.0
-  endif
   !------------------------------------------------------------------
 
   if (debug_flag == 1 .and. i_proc == 0) then

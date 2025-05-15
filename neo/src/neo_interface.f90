@@ -30,7 +30,6 @@ module neo_interface
   integer :: neo_collision_model_in = 4
   integer :: neo_profile_model_in = 1
   integer :: neo_profile_erad0_model_in = 1
-  integer :: neo_profile_equilibrium_model_in = 1
   integer :: neo_ipccw_in = -1
   integer :: neo_btccw_in = -1
   integer :: neo_rotation_model_in = 1
@@ -105,8 +104,6 @@ module neo_interface
   real    :: neo_threed_hyperxi_in = 0.0
   integer :: neo_laguerre_method_in = 1
   integer :: neo_write_cmoments_flag_in = 0
-  integer :: neo_geo_ny_in = 0
-  real, dimension(8,0:32) :: neo_geo_yin_in = 0.0
   ! the exception of the default is subroutine_flag
   integer :: neo_subroutine_flag = 1
   integer :: neo_test_flag_in = 0
@@ -175,7 +172,6 @@ contains
     neo_collision_model_in = collision_model
     neo_profile_model_in = profile_model
     neo_profile_erad0_model_in = profile_erad0_model
-    neo_profile_equilibrium_model_in = profile_equilibrium_model
     neo_ipccw_in  = ipccw_in
     neo_btccw_in  = btccw_in
     neo_rotation_model_in = rotation_model
@@ -250,8 +246,6 @@ contains
     neo_threed_hyperxi_in = threed_hyperxi
     neo_laguerre_method_in = laguerre_method 
     neo_write_cmoments_flag_in = write_cmoments_flag 
-    neo_geo_ny_in = geo_ny_in
-    neo_geo_yin_in(:,:) = geo_yin_in(:,:)
     neo_subroutine_flag = subroutine_flag
 
   end subroutine map_global2interface
@@ -277,7 +271,6 @@ contains
     collision_model = neo_collision_model_in
     profile_model = neo_profile_model_in
     profile_erad0_model = neo_profile_erad0_model_in
-    profile_equilibrium_model = neo_profile_equilibrium_model_in
     ipccw_in  = neo_ipccw_in
     btccw_in  = neo_btccw_in 
     rotation_model = neo_rotation_model_in
@@ -352,8 +345,6 @@ contains
     threed_hyperxi = neo_threed_hyperxi_in
     laguerre_method = neo_laguerre_method_in
     write_cmoments_flag = neo_write_cmoments_flag_in 
-    geo_ny_in = neo_geo_ny_in
-    geo_yin_in(:,:) = neo_geo_yin_in(:,:)
     subroutine_flag = neo_subroutine_flag
 
     call interfacelocaldump
@@ -614,13 +605,6 @@ contains
     write(1,20) 'WRITE_CMOMENTS_FLAG=',neo_write_cmoments_flag_in
 
     close(1)
-
-    if(neo_equilibrium_model_in == 3) then
-       open(unit=1,file=trim(path)//'out.neo.localdump_geo',status='replace')
-       write(1,10) neo_geo_ny_in
-       write(1,40) neo_geo_yin_in(:,0:neo_geo_ny_in)
-       close(1)
-    endif
 
 10  format(i3)
 40  format(1pe12.5)

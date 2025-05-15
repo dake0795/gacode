@@ -103,38 +103,6 @@ def prgen_fshape(rd,zd,nf):
 
     return ar,br,az,bz
 
-#-----------------------------------------------------------------------------
-# Old Fourier expansion
-#-----------------------------------------------------------------------------
-def oldfourier(ri,zi,nf,rnorm):
-
-   print("INFO: (oldfourier) Generating legacy Fourier coefficients")
-   npsi = len(rnorm)
-
-   ari = np.zeros([nf+1,npsi]) ; bri = np.zeros([nf+1,npsi])
-   azi = np.zeros([nf+1,npsi]) ; bzi = np.zeros([nf+1,npsi])
-
-   for i in range(npsi-1):
-      r=ri[:,i+1] ; z=zi[:,i+1]
-      ar,br,az,bz = prgen_fshape(r,z,nf)
-      ari[:,i+1] = ar[:] ; bri[:,i+1] = br[:]
-      azi[:,i+1] = az[:] ; bzi[:,i+1] = bz[:]
-
-   # Repair origin
-   ari[0,:] = extrap(rnorm,ari[0,:])
-   azi[0,:] = extrap(rnorm,azi[0,:])
-
-   ari[1:,0] = 0.0 ; bri[1:,0] = 0.0
-   azi[1:,0] = 0.0 ; bzi[1:,0] = 0.0
-      
-   u = ari
-   u = np.append(u,bri)
-   u = np.append(u,azi)
-   u = np.append(u,bzi)
-   u.tofile('fluxfit.geo')
-
-   return
-
 # Function to compute Fourier integrals
 # f,w are periodic
 def moment(n,f,w,d):
@@ -242,7 +210,7 @@ def plot_coef(pnorm,ci,si,xi):
 
    fig = plt.figure(figsize=(14,12))
 
-   label=['r','R','\kappa','Z']
+   label=['r','R',r'\kappa','Z']
    for i in range(4):
       ax = fig.add_subplot(3,4,i+1)
       ax.set_xlabel(r'$\psi$')
@@ -262,7 +230,7 @@ def plot_coef(pnorm,ci,si,xi):
       u = ci[i,:]
       ax.plot(pnorm,u,'-r',linewidth=1,alpha=1)
 
-   label=['-','\delta','-\zeta','s_3']
+   label=['-',r'\delta',r'-\zeta','s_3']
    for i in range(4):
       ax = fig.add_subplot(3,4,i+9)
       ax.set_xlabel(r'$\psi$')

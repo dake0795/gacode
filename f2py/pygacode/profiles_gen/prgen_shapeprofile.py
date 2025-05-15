@@ -13,9 +13,8 @@ mag   = sys.argv[2]
 narc  = int(sys.argv[3])
 npsi  = int(sys.argv[4])
 nharm = int(sys.argv[5])
-nfourier = int(sys.argv[6])
-plotpng  = bool(int(sys.argv[7]))
-psinorm  = float(sys.argv[8])
+plotpng  = bool(int(sys.argv[6]))
+psinorm  = float(sys.argv[7])
 
 efit = prgen_geqdsk(gfile)
 psi0 = efit['SIMAG']
@@ -79,13 +78,3 @@ u = np.append(u,si[:,:])
 u = np.append(u,ci[:,:])
 u = np.append(u,xi[:,:])
 u.tofile('out.data')
-
-# Finished standard mode
-# If nfourier > 0, generate Fourier coefficients and diagnostics
-
-if nfourier > 0:
-   # Generate pure Fourier expansion coefficients, write to fluxfit.geo
-   oldfourier(ri,zi,nfourier,rnorm)
-   if plotpng:
-      # Plot radial profiles of cos,sin,etc
-      plot_coef(pnorm,ci,si,xi)

@@ -7,7 +7,7 @@ subroutine neo_make_profiles
   implicit none
   
   integer :: ir, is, num_ele, j
-  integer :: udsymmetry_flag, quasineutral_flag
+  integer :: quasineutral_flag
   real    :: btccw_exp, ipccw_exp
   integer, parameter :: io=20
   
@@ -70,18 +70,6 @@ subroutine neo_make_profiles
      shape_cos(:,ir)   = shape_cos_in(:)
      shape_s_cos(:,ir) = shape_s_cos_in(:)
      beta_star(ir) = beta_star_in
-     
-     ! general geometry -- accessible only from interface 
-     ! via parameters geo_ny_in and geo_yin_in
-     if(equilibrium_model == 3) then
-        geo_numeq_flag = 1
-        deallocate(geo_yin)
-        geo_ny = geo_ny_in   
-        allocate(geo_yin(8,0:geo_ny,1))
-        do j=0,geo_ny
-           geo_yin(:,j,1) = geo_yin_in(:,j)
-        enddo
-     endif
 
      dphi0dr(ir)   = dphi0dr_in
      epar0(ir)     = epar0_in
@@ -165,18 +153,10 @@ subroutine neo_make_profiles
      ! currently only works in local profile mode
      beta_star(:) = 0.0
 
-     udsymmetry_flag   = 0  ! do not enforce up-down symmetry
      quasineutral_flag = 1  ! do enforce quasineutrality
-     if (profile_equilibrium_model == 2) then
-        geo_numeq_flag = 1
-     else
-        geo_numeq_flag = 0
-     endif
 
      do ir=1,n_radial
         call expro_locsim_profiles(&
-             geo_numeq_flag,&
-             udsymmetry_flag,&
              quasineutral_flag,&
              n_species+ae_flag,&
              r(ir),&
@@ -271,15 +251,6 @@ subroutine neo_make_profiles
         rhoN_torflux(ir)  = rho_norm_loc
         psiN_polflux(ir)  = psi_norm_loc
         psiN_polflux_a    = psi_a_loc
-     
-        if (geo_numeq_flag == 1) then
-           geo_ny = geo_ny_loc
-           if(ir==1) then
-              deallocate(geo_yin)
-              allocate(geo_yin(8,0:geo_ny,n_radial))
-           endif
-           geo_yin(:,:,ir) = geo_yin_loc
-        endif
         
         if(error_status > 0) return
 
@@ -298,13 +269,7 @@ subroutine neo_make_profiles
      enddo
      vth_norm(:)  = vth(1,:) * sqrt(mass(1))
      
-     ! Determine the equilibrium parameters
-     select case (profile_equilibrium_model) 
-     case(1)
-        equilibrium_model = 2 ! miller
-     case(2)
-        equilibrium_model = 3 ! general
-     end select
+     equilibrium_model = 2 ! miller
      
      ! Compute the rotation parameters
      select case (rotation_model)     

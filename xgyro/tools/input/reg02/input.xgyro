@@ -1,6 +1,6 @@
 N_DIRS = 3
 MIN_MPI_1 = 1
-DIR_1 = reg04
+DIR_1 = reg08
 MIN_MPI_2 = 2
 DIR_2 = reg05
 MIN_MPI_3 = 1

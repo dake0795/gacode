@@ -20,8 +20,6 @@ module expro_locsim_interface
   double precision, dimension(:), allocatable :: gamma_p_exp
   double precision, dimension(:), allocatable :: mach_exp
   
-  double precision, dimension(:,:,:), allocatable :: geo_yin_exp
-
   ! Local values
 
   double precision :: shift_loc
@@ -83,9 +81,6 @@ module expro_locsim_interface
   double precision, dimension(9) :: sdlnndr_loc
   double precision, dimension(9) :: sdlntdr_loc
 
-  integer :: geo_ny_loc
-  double precision, dimension(:,:), allocatable :: geo_yin_loc
-
 end module expro_locsim_interface
 
 subroutine expro_locsim_alloc(flag)
@@ -131,8 +126,6 @@ subroutine expro_locsim_alloc(flag)
      if (allocated(gamma_p_exp)) deallocate(gamma_p_exp)
      if (allocated(mach_exp)) deallocate(mach_exp)
      
-     if (allocated(geo_yin_exp)) deallocate(geo_yin_exp)
-
   endif
 
 end subroutine expro_locsim_alloc
@@ -147,8 +140,6 @@ end subroutine expro_locsim_alloc
 ! INPUTS:
 !  path              : path to data
 !  comm              : MPI communicator
-!  numeq_flag        : Fourier series equilibrium (0=no,1=yes)
-!  udsymmetry_flag   : enforce up-down symmetry (0=no,1=yes)
 !  quasineutral_flag : enforce quasineutrality (0=no,1=yes)
 !  n_species_in      : total species (e+i)
 !  z                 : vector of charges (length n_species_in-1)
@@ -164,8 +155,6 @@ end subroutine expro_locsim_alloc
 !----------------------------------------------------------------
 
 subroutine expro_locsim_profiles(&
-     numeq_flag,&
-     udsymmetry_flag,&
      quasineutral_flag,&
      n_species_in,&
      rmin,&
@@ -180,8 +169,6 @@ subroutine expro_locsim_profiles(&
 
   implicit none
 
-  integer, intent(in) :: numeq_flag
-  integer, intent(in) :: udsymmetry_flag
   integer, intent(in) :: quasineutral_flag
   integer, intent(in) :: n_species_in
   integer, intent(in) :: comm
@@ -202,7 +189,6 @@ subroutine expro_locsim_profiles(&
   ! use expro routines to read data:
   !
   expro_ctrl_quasineutral_flag = 1  ! quasi-neutrality density flag
-  expro_ctrl_numeq_flag = numeq_flag
   expro_ctrl_n_ion = n_species_exp-1
 
   call expro_read(trim(path)//'input.gacode',comm)
@@ -217,11 +203,6 @@ subroutine expro_locsim_profiles(&
   ipccw = -expro_signq*expro_signb
 
   rmin_exp(:) = expro_rmin(:)
-
-  if (udsymmetry_flag == 1) then
-     expro_zmag(:) = 0d0   
-     expro_dzmag(:) = 0d0
-  endif
 
   ! Minor radius, a, in meters:
   a_meters = rmin_exp(expro_n_exp)
@@ -354,24 +335,6 @@ subroutine expro_locsim_profiles(&
   sdlnndr_loc(:) = sdlnndr_loc(:)+(1.5*dlntdr_loc(:)**2+dlnndr_loc(:)**2-dlnndr_loc(:)*dlntdr_loc(:))*rhostar
   sdlntdr_loc(:) = sdlntdr_loc(:)+dlntdr_loc(:)**2*rhostar
   
-  if (numeq_flag == 1 .and. expro_nfourier > 0) then
-
-     geo_ny_loc = expro_nfourier
-     allocate(geo_yin_exp(8,0:geo_ny_loc,expro_n_exp))
-     if(allocated(geo_yin_loc)) deallocate(geo_yin_loc)
-     allocate(geo_yin_loc(8,0:geo_ny_loc))
-     geo_yin_exp(1:4,:,:) = expro_geo(:,:,:)/a_meters
-     geo_yin_exp(5:8,:,:) = expro_dgeo(:,:,:)
-
-     do i=1,8
-        do j=0,geo_ny_loc
-           call cub_spline1(rmin_exp,geo_yin_exp(i,j,:),expro_n_exp,rmin, &
-                geo_yin_loc(i,j))
-        enddo
-     enddo
-
-  endif
-
 end subroutine expro_locsim_profiles
 
 !---------------------------------------------------------------

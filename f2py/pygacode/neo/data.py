@@ -6,7 +6,7 @@ class NEOData:
     Data:
 
     Example Usage:
-        >>> from gacode.python.neo.data import NEOData
+        >>> from pygacode.neo.data import NEOData
         >>> sim1 = NEOData('example_directory')
     """
 
@@ -23,6 +23,8 @@ class NEOData:
         self.read_theory()
         self.read_transport()
         self.read_transport_gv()
+        self.read_transport_exp()
+        self.read_transport_flux()
         self.read_equil()
         self.read_vel()
         self.read_rotation()
@@ -32,22 +34,23 @@ class NEOData:
     def init_data(self):
         """Initialize object data."""
 
-        self.dirname       = ""
-        self.grid          = {}
-        self.equil         = {}
-        self.theory        = {}
-        self.theory_nclass = {}
-        self.transport     = {}
-        self.transport_gv  = {}
-        self.expnorm       = {}
-        self.phi           = {}
-        self.vel           = []
-        self.veltag        = []
-        self.rotation      = {}
-        self.geo           = {}
-        self.flow          = {}
+        self.dirname        = ""
+        self.grid           = {}
+        self.equil          = {}
+        self.theory         = {}
+        self.theory_nclass  = {}
+        self.transport      = {}
+        self.transport_gv   = {}
+        self.transport_exp  = {}
+        self.transport_flux = {}
+        self.expnorm        = {}
+        self.phi            = {}
+        self.vel            = []
+        self.veltag         = []
+        self.rotation       = {}
+        self.geo            = {}
+        self.flow           = {}
 
-        
     #-------------------------------------------------------------------------#
     
     def join(self,obj):
@@ -59,7 +62,8 @@ class NEOData:
         copy.grid['r_over_a'] =  np.hstack((self.grid['r_over_a'],obj.grid['r_over_a']))
         copy.vel = np.vstack(( self.vel , obj.vel ))
         
-        dicts = 'equil','theory','theory_nclass','transport','transport_gv','transport_exp','rotation','flow','geo'
+        dicts = 'equil','theory','theory_nclass','transport','transport_gv','transport_exp', 'transport_flux',\
+            'rotation','flow','geo'
         
         for d in dicts:
             keys = getattr(copy,d)
@@ -67,7 +71,6 @@ class NEOData:
                getattr(copy,d)[k] = np.vstack((getattr(self,d)[k],getattr(obj,d)[k]))
         
         return copy
-        
         
     #-------------------------------------------------------------------------#
 
@@ -80,7 +83,9 @@ class NEOData:
     #-------------------------------------------------------------------------#
     
     def read_neoinputgeo(self):
-        """Load shape of magnetics flux surfaces"""                
+        """Load shape of magnetic flux surfaces.
+        This method may only work for legacy runs, flux surface info now in input.gacode.
+        """                
         
         def mom2rz(rcos,rsin,zcos,zsin,theta):
             #composition of the flux surfaces from the Fourier moments
@@ -98,9 +103,6 @@ class NEOData:
             z_plot+= np.tensordot(zsin,sin,axes=([0,0]))
             return r_plot,z_plot
 
-
-        
-
         try:
             data = np.loadtxt(self.dirname+'/input.geo')
             n_fourier = int(data[0])
@@ -111,21 +113,17 @@ class NEOData:
         except:
             try:
                 data = np.loadtxt(self.dirname+'/input.profiles.geo')
-            
-            
                 n_fourier = int(data[0])
                 fourier = data[1:] 
                 
                 rcos,rsin,zcos,zsin = fourier.reshape((4,n_fourier+1 ,-1), order='F')
   
             except:
-                print("ERROR (NEOData): Fatal error!  Missing input.geo.")
+                print("WARN (NEOData): Missing input.geo, input.profiles.geo")
                 return
  
-
         self.geo = {'rcos':rcos,'rsin':rsin,'zcos':zcos,'zsin':zsin}
         
-
         theta = np.linspace(-np.pi,np.pi,1000)
         r,z = mom2rz(rcos,rsin,zcos,zsin, self.grid['theta'])
 
@@ -136,7 +134,6 @@ class NEOData:
 
     def read_grid(self):
         """Reads out.neo.grid"""
-
 
         try:
             data = np.loadtxt(self.dirname+'/out.neo.grid')
@@ -192,7 +189,6 @@ class NEOData:
             if self.verbose:
                 print("ERROR (NEOData): Fatal error!  Missing out.neo.theory.")
             return
-
 
         if len(data.shape)==1:
             data = data[None,:data.shape[0]]
@@ -271,7 +267,6 @@ class NEOData:
     def read_transport_exp(self):
         """Reads out.neo.transport_exp."""
 
-
         try:
             data = np.atleast_2d(np.loadtxt(self.dirname+'/out.neo.transport_exp'))
         except:
@@ -292,6 +287,40 @@ class NEOData:
         self.transport_exp['K']       = data[:,10::8]
         self.transport_exp['vtheta']  = data[:,11::8]
         self.transport_exp['vphi']    = data[:,12::8]
+
+        # Add an '_exp' prefix to avoid confusion,
+        old_keys = list(self.transport_exp.keys())
+        new_keys = [k+'_exp' for k in old_keys]
+        for knew, kold in zip(new_keys, old_keys):
+            self.transport_exp[knew] = self.transport_exp[kold]
+            self.transport_exp.pop(kold)
+
+    #-------------------------------------------------------------------------#
+        
+    def read_transport_flux(self):
+        """Reads out.neo.transport_flux.
+        Converts the (N_RADIAL*3*N_SPECIES, 4) array into 9 (N_RADIAL, N_SPECIES) arrays.
+        """
+        try:
+            data = np.atleast_2d(np.loadtxt(self.dirname+'/out.neo.transport_flux'))
+        except:
+            if self.verbose:
+                print("ERROR (NEOData): Fatal error!  Missing out.neo.transport_flux.")
+            return
+        
+        ns = self.grid['n_species']
+        skip = 3*ns
+        self.transport_flux['Gamma_dke_gb'] = np.stack([data[n::skip,1] for n in range(ns)]).T
+        self.transport_flux['Q_dke_gb']     = np.stack([data[n::skip,2] for n in range(ns)]).T
+        self.transport_flux['Pi_dke_gb']    = np.stack([data[n::skip,3] for n in range(ns)]).T
+
+        self.transport_flux['Gamma_gv_gb']  = np.stack([data[ns+n::skip,1] for n in range(ns)]).T
+        self.transport_flux['Q_gv_gb']      = np.stack([data[ns+n::skip,2] for n in range(ns)]).T
+        self.transport_flux['Pi_gv_gb']     = np.stack([data[ns+n::skip,3] for n in range(ns)]).T
+
+        self.transport_flux['Gamma_gb']     = np.stack([data[2*ns+n::skip,1] for n in range(ns)]).T
+        self.transport_flux['Q_gb']         = np.stack([data[2*ns+n::skip,2] for n in range(ns)]).T
+        self.transport_flux['Pi_gb']        = np.stack([data[2*ns+n::skip,3] for n in range(ns)]).T
 
     #-------------------------------------------------------------------------#
 
@@ -314,10 +343,8 @@ class NEOData:
             N += n_theta
             self.rotation['n_ov_n0'] = data[:,N:].reshape(n_radial,n_spec,n_theta)
 
-            
-            
         except:
-            print("Warning (NEOData): Missing out.neo.rotation.")
+            print("WARN (NEOData): Missing out.neo.rotation.")
             self.rotation['r_over_a'] = self.grid['r_over_a']
             self.rotation['dphi_ave'] = np.zeros([n_radial])
             self.rotation['n_ratio']  = np.ones([n_radial,n_spec])
@@ -325,9 +352,6 @@ class NEOData:
             self.rotation['V_conv']   = np.zeros([n_radial,n_spec])
             self.rotation['n_ov_n0']  = np.ones([n_radial,n_spec,n_theta])
             self.rotation['phi_theta']= np.zeros([n_radial,n_theta])
-
-
-            
    
     #-------------------------------------------------------------------------#
 
@@ -347,14 +371,11 @@ class NEOData:
 
         self.veltag = ['n_radial','n_species','n_theta']
         
-        
         try:
             data = np.loadtxt(self.dirname+'/out.neo.vel_fourier',ndmin=2)
         except:
             print("ERROR (NEOData): Missing out.neo.vel_fourier.")
             raise Exception('no data') 
-
-
 
         n_theta = self.grid['n_theta']
         nbspecies = self.grid['n_species']
@@ -383,8 +404,3 @@ class NEOData:
         self.flow['par_flow'] = np.einsum('ijk,kl',cos_par_flow, c)+np.einsum('ijk,kl',sin_par_flow, s)
         self.flow['pol_flow'] = np.einsum('ijk,kl',cos_pol_flow, c)+np.einsum('ijk,kl',sin_pol_flow, s)
         self.flow['tor_flow'] = np.einsum('ijk,kl',cos_tor_flow, c)+np.einsum('ijk,kl',sin_tor_flow, s)
-
-     
-     
-     
-     

@@ -23,7 +23,6 @@ subroutine neo_read_input
   read(1,*) collision_model
   read(1,*) profile_model
   read(1,*) profile_erad0_model
-  read(1,*) profile_equilibrium_model
   read(1,*) ipccw_in
   read(1,*) btccw_in
 
@@ -102,24 +101,6 @@ subroutine neo_read_input
   read(1,*) use_slu
 
   close(1)
-
-  ! GEO fourier coefficients are not yet available to read-in
-  geo_ny_in = 0
-  geo_yin_in(:,:) = 0.0
-  if (subroutine_flag == 0 .and. equilibrium_model == 3) then
-     open(unit=1,file=trim(path)//'input.geo',status='old')
-     ! header skip
-     do
-        read(1,'(a)') cdummy
-        if (cdummy /= '#') exit
-     enddo
-     backspace 1
-     ! n_fourier
-     read(1,*) geo_ny_in
-     ! fourier coefficients
-     read(1,*) geo_yin_in(:,0:geo_ny_in)
-     close(1)
-  endif
 
   ! 3D equilibrium from LE3:
   if (threed_model == 1) then

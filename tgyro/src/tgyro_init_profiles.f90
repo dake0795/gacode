@@ -120,7 +120,6 @@ subroutine tgyro_init_profiles
   
   expro_ctrl_n_ion = loc_n_ion
   expro_ctrl_quasineutral_flag = 0
-  expro_ctrl_numeq_flag = 0
 
   call expro_read('input.gacode',MPI_COMM_WORLD) 
 

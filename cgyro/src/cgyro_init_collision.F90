@@ -53,7 +53,7 @@ subroutine cgyro_init_collision
      ! collision_model=6 (Landau) or 7 (New Sugama method [Galerkin])
      ! The way this is included now isn't harmonic with Igor's changes
      ! cmat -> cmat_loc. The reason is to make the merge simpler.
-     if (collision_precision_mode/=0) allocate(cmat(nv,nv,nc_loc,nt1:nt2))
+     if (collision_precision_mode/=0) allocate(cmat(nv,nv,nc_loc_coll,nt1:nt2))
      call cgyro_init_landau
   else
      allocate(nu_d(n_energy,n_species,n_species))
@@ -167,11 +167,11 @@ subroutine cgyro_init_collision
      
      if ( collision_model == 4 .and. collision_kperp == 1 .and. &
           (collision_mom_restore == 1 .or. collision_ene_restore == 1)) then
-        allocate(bessel(0:1,nv,nc_loc,nt1:nt2))
+        allocate(bessel(0:1,nv,nc_loc_coll,nt1:nt2))
 !$omp parallel do collapse(2) private(ic_loc,it,ie,ix,is,iv,arg,xi_s1s,xi_prop)
         do itor=nt1,nt2
-           do ic=nc1,nc2
-              ic_loc = ic-nc1+1
+           do ic=nc_cl1,nc_cl2
+              ic_loc = ic-nc_cl1+1
               it = it_c(ic)
               do iv=1,nv
                  is = is_v(iv)
@@ -477,7 +477,7 @@ subroutine cgyro_init_collision
   cmat32_diff_global_loc = 0.0
 
 !$omp  parallel do collapse(2) default(none) &
-!$omp& shared(nc1,nc2,nt1,nt2,nv,delta_t,n_species,rho,is_ele,n_field,n_energy,n_xi) &
+!$omp& shared(nc_cl1,nc_cl2,nt1,nt2,nv,delta_t,n_species,rho,is_ele,n_field,n_energy,n_xi) &
 !$omp& shared(collision_kperp,collision_field_model,explicit_trap_flag) &
 !$omp& firstprivate(collision_model,collision_mom_restore,collision_ene_restore) &
 !$omp& shared(ae_flag,lambda_debye,dens_ele,temp_ele,dens_rot,dens2_rot) &
@@ -498,9 +498,9 @@ subroutine cgyro_init_collision
 !$omp& reduction(+:cmat_diff_global_loc,cmat32_diff_global_loc) &
 !$omp& reduction(+:cmap_fp32_error_abs_cnt_loc,cmap_fp32_error_rel_cnt_loc)
   do itor=nt1,nt2
-     do ic=nc1,nc2
+     do ic=nc_cl1,nc_cl2
 
-        ic_loc = ic-nc1+1
+        ic_loc = ic-nc_cl1+1
 
         it = it_c(ic)
         ir = ir_c(ic)
@@ -695,6 +695,7 @@ subroutine cgyro_init_collision
                  endif
 
                  if (collision_field_model == 1) then
+                    ! Note: All nsm of jvec_v are the same, use only the 1st one
 
                     ! Poisson component l
                     if (itor == 0 .and. ae_flag == 1) then
@@ -704,32 +705,32 @@ subroutine cgyro_init_collision
                        !cmat_loc(iv,jv)    = cmat_loc(iv,jv) + 0.0
                        !amat(iv,jv)        = amat(iv,jv) + 0.0
                     else
-                       rval =  z(is)/temp(is) * jvec_v(1,ic_loc,itor,iv) &
+                       rval =  z(is)/temp(is) * jvec_v(1,ic_loc,itor,iv,1) &
                             / (k_perp(ic,itor)**2 * lambda_debye**2 &
                             * dens_ele / temp_ele + sum_den_h(it)) &
                             * z(js)*dens2_rot(it,js) &
-                            * jvec_v(1,ic_loc,itor,jv) * w_exi(je,jx) 
+                            * jvec_v(1,ic_loc,itor,jv,1) * w_exi(je,jx) 
                        cmat_loc(iv,jv) = cmat_loc(iv,jv) - rval
                        amat(iv,jv) = amat(iv,jv) - rval
                     endif
 
                     ! Ampere component
                     if (n_field > 1) then
-                       rval =  z(is)/temp(is) * (jvec_v(2,ic_loc,itor,iv) &
+                       rval =  z(is)/temp(is) * (jvec_v(2,ic_loc,itor,iv,1) &
                             / (2.0*k_perp(ic,itor)**2 * rho**2 / betae_unit & 
                             * dens_ele * temp_ele)) &
                             * z(js)*dens2_rot(it,js) &
-                            * jvec_v(2,ic_loc,itor,jv) * w_exi(je,jx)  
+                            * jvec_v(2,ic_loc,itor,jv,1) * w_exi(je,jx)  
                        cmat_loc(iv,jv) = cmat_loc(iv,jv) + rval
                        amat(iv,jv) = amat(iv,jv) + rval
                     endif
 
                     ! Ampere Bpar component
                     if (n_field > 2) then
-                       rval = jvec_v(3,ic_loc,itor,iv) &
+                       rval = jvec_v(3,ic_loc,itor,iv,1) &
                             * (-0.5*betae_unit)/(dens_ele*temp_ele) &
                             * w_exi(je,jx)*dens2_rot(it,js)*temp(js) &
-                            * jvec_v(3,ic_loc,itor,jv)/(temp(is)/z(is))/(temp(js)/z(js))
+                            * jvec_v(3,ic_loc,itor,jv,1)/(temp(is)/z(is))/(temp(js)/z(js))
                        cmat_loc(iv,jv) = cmat_loc(iv,jv) - rval
                        amat(iv,jv) = amat(iv,jv) - rval
                     endif

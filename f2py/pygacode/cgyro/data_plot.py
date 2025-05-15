@@ -252,13 +252,13 @@ class cgyrodata_plot(data.cgyrodata):
 
       # Construct complex eigenfunction at selected time
       if field == 0:
-         f = self.phib[0,:,itime]+1j*self.phib[1,:,itime]
+         f = self.phib[:,itime]
          ytag = r'$\delta\phi$'
       elif field == 1:
-         f = self.aparb[0,:,itime]+1j*self.aparb[1,:,itime]
+         f = self.aparb[:,itime]
          ytag = r'$A_\parallel$'
       elif field == 2:
-         f = self.bparb[0,:,itime]+1j*self.bparb[1,:,itime]
+         f = self.bparb[:,itime]
          ytag = r'$B_\parallel$'
 
       ax = fig.add_subplot(111)
@@ -280,16 +280,18 @@ class cgyrodata_plot(data.cgyrodata):
             ax.set_xlim([-tmax,tmax])
 
             
-      # theta_* = 0
-      n0 = self.n_radial//2*self.n_theta+self.n_theta//2
+      # normalization is phi(complex) where |phi| is max
+      n0 = np.argmax(abs(self.phib[:,itime]))
+      f_norm = self.phib[n0,itime]
 
+      #n0 = self.n_radial//2*self.n_theta+self.n_theta//2
       # Normalized real and imag parts
-      if fnorm == 0:
-         f_norm = self.phib[0,n0,itime]+1j*self.phib[1,n0,itime]
-      elif fnorm == 1:
-         f_norm = self.aparb[0,n0,itime]+1j*self.aparb[1,n0,itime]
-      else:
-         f_norm = self.bparb[0,n0,itime]+1j*self.bparb[1,n0,itime]
+      #if fnorm == 0:
+      #   f_norm = self.phib[n0,itime]
+      #elif fnorm == 1:
+      #   f_norm = self.aparb[n0,itime]
+      #else:
+      #   f_norm = self.bparb[n0,itime]
          
       y1 = np.real(f/f_norm)
       y2 = np.imag(f/f_norm)
@@ -1480,18 +1482,7 @@ class cgyrodata_plot(data.cgyrodata):
          if ymin != 'auto':
             ax.set_ylim(bottom=float(ymin))
 
-         #ax.axvspan(-0.25,0.25,facecolor='g',alpha=0.1)
          ax.set_xlim([r[0],r[-1]])
-         #ax.set_xticks([-0.5,-0.375,-0.25,-0.125,0,0.125,0.25,0.375,0.5])
-         #ax.set_xticklabels([r'$-0.5$',
-          #                   r'$-0.375$',
-          #                   r'$-0.25$',
-          #                   r'$-0.125$',
-          #                   r'$0$',
-          #                   r'$0.125$',
-          #                   r'$0.25$',
-          #                   r'$0.375$',
-          #                   r'$0.5$'])
 
          ax.legend(loc=2)
 
@@ -1573,6 +1564,8 @@ class cgyrodata_plot(data.cgyrodata):
       ymax   = xin['ymax']
       nstr   = xin['nstr']
       bar    = xin['bar']
+      spec   = xin['spec']
+      
 
       t = self.getnorm(xin['norm'])
       
@@ -1596,7 +1589,7 @@ class cgyrodata_plot(data.cgyrodata):
       ax.set_title(r'$\mathrm{Average~fluctuation~intensity} \quad $'+mwin)
       ax.set_xlabel(self.kxstr)
 
-      f,ft = self.kxky_select(theta,field,moment,0,gbnorm=True)
+      f,ft = self.kxky_select(theta,field,moment,spec,gbnorm=True)
 
       if nstr == 'null' or nstr == '+':
          ax.set_ylabel(self.ylabeler(nstr,ft,sq=True,tave=True))

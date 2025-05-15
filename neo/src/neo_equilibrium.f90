@@ -126,9 +126,7 @@ contains
     
     sum=0.0
 
-    if (equilibrium_model == 2 .or. equilibrium_model == 3) then 
-
-       ! geo_numeq_flag, geo_ny, and geo_yin already set
+    if (equilibrium_model == 2) then 
 
        GEO_signb_in   = sign_bunit
        GEO_rmin_in    = r(ir)
@@ -178,12 +176,10 @@ contains
              GEO_beta_star_in = beta_star(ir)
           endif
        enddo
-       GEO_fourier_in(:,0:geo_ny) = geo_yin(:,:,ir)
 
        ! GEO dimensions
        GEO_ntheta_in   = 2001
-       GEO_nfourier_in = geo_ny
-       GEO_model_in    = geo_numeq_flag
+       GEO_model_in    = 0
 
        ! Get initial geo solution, then set geo params at theta=0
        allocate(ttmp(1))

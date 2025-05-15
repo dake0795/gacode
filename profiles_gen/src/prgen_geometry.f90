@@ -16,8 +16,6 @@ subroutine prgen_geometry
   real, dimension(:,:), allocatable :: efit_si,efit_ci
   real, dimension(:), allocatable :: efit_rho,efit_psi,efit_q,efit_p,efit_fpol
   real, dimension(:), allocatable :: efit_rmin,efit_rmaj,efit_kappa,efit_zmaj
-  real, dimension(:,:,:), allocatable :: g3vec
-  real, dimension(:,:,:), allocatable :: g3rho
   real :: psi_sep,pratio
 
   !----------------------------------------------------------------
@@ -127,53 +125,6 @@ subroutine prgen_geometry
   delta = sin(shape_sin(1,:))
   zeta  = -shape_sin(2,:)
   !==============================================================================
-
-  if (nfourier > 0) then
-
-     ! Legacy direct Fourier representation
-     allocate(g3vec(npsi,0:nfourier,4))
-     allocate(g3rho(nx,0:nfourier,4))
-
-     open(unit=1,file='fluxfit.geo',status='old',access='stream')
-     do i=1,4
-        read(1) g3vec(:,:,i)
-     enddo
-     close(1)
-
-     ! Map results onto poloidal flux (dpsi) grid:
-     ! NOTE: need sqrt here to get sensible behaviour as r -> 0.
-     do i=1,4
-        do ip=0,nfourier
-           call bound_interp(efit_rho,g3vec(:,ip,i),npsi,rho,g3rho(:,ip,i),nx)
-        enddo
-     enddo
-
-     open(unit=1,file='input.gacode.geo',status='replace')
-     write(1,'(a)') '# input.gacode.geo'
-     write(1,'(a)') '#'
-     write(1,'(a)') '# File format:'
-     write(1,'(a)') '#-------------------'
-     write(1,'(a)') '# nfourier'
-     write(1,'(a)') '# a[4,0:nfourier,nx]'
-     write(1,'(a)') '#-------------------'
-     write(1,'(a)') '#'
-     write(1,'(a)') '# NOTE: nx=EXPRO_n_exp is defined in input.gacode'
-     write(1,*) nfourier
-     do j=1,nx
-        do ip=0,nfourier
-           do i=1,4
-              write(1,'(1pe20.13)') g3rho(j,ip,i)
-           enddo
-        enddo
-     enddo
-     close(1)
-     !----------------------------------------------------
-
-     ! Clean up
-     deallocate(g3vec)
-     deallocate(g3rho)
-
-  endif
 
   deallocate(efit_si)
   deallocate(efit_ci)

@@ -9,6 +9,7 @@ total_MPI = int(sys.argv[1])
 # Read the fixed parameters first
 base = SimpleInput()
 base.add('MPI_RANK_ORDER','1')
+base.add('SHARE_CMAT','0')
 base.add('N_DIRS','0')
 # Perform the parsing
 base.read_input('input.xgyro')
@@ -25,6 +26,7 @@ x = SimpleInput()
 
 # XGYRO input parameters
 x.add('MPI_RANK_ORDER','1')
+x.add('SHARE_CMAT','0')
 x.add('N_DIRS',"%s"%n_dirs)
 for i in range(n_dirs):
   fi = i+1

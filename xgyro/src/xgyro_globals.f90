@@ -18,6 +18,7 @@ module xgyro_globals
   ! Input parameters:
   !
   integer :: xgyro_mpi_rank_order
+  integer :: xgyro_share_cmat
   ! all the arrays are xgyro_n_dirs in size
   integer :: xgyro_n_dirs
   integer, dimension(:), allocatable :: xgyro_n_mpi

@@ -317,6 +317,7 @@ subroutine cgyro_rhs_trap(ij)
 
   ! Explicit trapping term
   if (explicit_trap_flag == 1) then
+     ! assert(n_sim==1), not supported else
      call timer_lib_in('str')
 
      allocate(rhs_trap(nc,nv_loc))
@@ -343,11 +344,11 @@ subroutine cgyro_rhs_trap(ij)
                  if (ie == je) then
                     bvec_trap(iv) = bvec_trap(iv) - (omega_trap(it,is,itor) * vel(ie) &
                          + omega_rot_trap(it,is) / vel(ie)) &
-                         * (1.0 - xi(ix)**2) * xi_deriv_mat(ix,jx) * cap_h_v(ic_loc,itor,jv)
+                         * (1.0 - xi(ix)**2) * xi_deriv_mat(ix,jx) * cap_h_v(ic_loc,itor,jv,i_sim)
                  endif
                  if (ix == jx) then
                     bvec_trap(iv) = bvec_trap(iv) - omega_rot_u(it,is) * xi(ix) &
-                         * e_deriv1_rot_mat(ie,je)/sqrt(1.0*e_max) * cap_h_v(ic_loc,itor,jv)
+                         * e_deriv1_rot_mat(ie,je)/sqrt(1.0*e_max) * cap_h_v(ic_loc,itor,jv,i_sim)
                  endif
               endif
            enddo

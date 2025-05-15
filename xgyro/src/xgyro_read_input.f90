@@ -13,6 +13,7 @@ subroutine xgyro_read_input
   if (xgyro_i_proc == 0) open(unit=1,file=trim(path)//'input.xgyro.gen',status='old')
 
   call xgyro_readbc_int(xgyro_mpi_rank_order,'MPI_RANK_ORDER')
+  call xgyro_readbc_int(xgyro_share_cmat,'SHARE_CMAT')
   call xgyro_readbc_int(xgyro_n_dirs,'N_DIRS')
   allocate(xgyro_n_mpi(xgyro_n_dirs))
   allocate(xgyro_dir_name(xgyro_n_dirs))

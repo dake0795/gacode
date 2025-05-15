@@ -11,7 +11,8 @@ subroutine xgyro_mpi_setup
   use mpi
 
   use xgyro_globals
-  use cgyro_globals, only : i_err, i_proc, n_proc, CGYRO_COMM_WORLD
+  use cgyro_globals, only : i_err, i_proc, n_proc, CGYRO_COMM_WORLD, &
+                            CGYRO_COMM_WORLD_4, n_sim, i_sim, have_COMM_4
   use xgyro_io
 
   implicit none
@@ -97,6 +98,21 @@ subroutine xgyro_mpi_setup
   !
   call MPI_COMM_RANK(CGYRO_COMM_WORLD,i_proc,i_err)
   call MPI_COMM_SIZE(CGYRO_COMM_WORLD,n_proc,i_err)
+
+  if (xgyro_share_cmat==1) then
+       ! Note: Ensemble-wide validation happens inside CGYRO itself
+       ! TODO: Consider even better checks at this level
+       ! Spread coll compute over the whole XGYRO MPI communicator
+       CGYRO_COMM_WORLD_4 = XGYRO_COMM_WORLD
+       n_sim = xgyro_n_dirs
+       i_sim = xgyro_i_dir
+  else
+       ! tell CGYRO that each simulation is independent
+       CGYRO_COMM_WORLD_4 = CGYRO_COMM_WORLD
+       n_sim = 1
+       i_sim = 1
+  endif
+  have_COMM_4 = .TRUE.
 
 end subroutine xgyro_mpi_setup
 

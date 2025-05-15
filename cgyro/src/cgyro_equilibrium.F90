@@ -14,9 +14,8 @@ subroutine cgyro_equilibrium
   real, parameter :: tol=1e-14
 
   ! Compute equilibrium quantities (even in test mode)
-  geo_model_in    = geo_numeq_flag
+  geo_model_in    = equilibrium_model-2
   geo_ntheta_in   = geo_ntheta
-  geo_nfourier_in = geo_ny
 
   if (zf_test_mode == 0) then
      ! Location of theta=0
@@ -26,8 +25,7 @@ subroutine cgyro_equilibrium
   endif
 
   ! Parameters needed for equilibrium
-  ! geo_numeq_flag, geo_ny, and geo_yin already set 
-
+  
   geo_signb_in     = -btccw
   geo_rmin_in      = rmin
   geo_rmaj_in      = rmaj
@@ -67,8 +65,6 @@ subroutine cgyro_equilibrium
   geo_shape_s_sin4_in = shape_s_sin(4)
   geo_shape_s_sin5_in = shape_s_sin(5)
   geo_shape_s_sin6_in = shape_s_sin(6)
-
-  geo_fourier_in(:,0:geo_nfourier_in) = geo_yin(:,:)
 
   ! Get initial geo solution, then set R,dR/dr at theta=0 
   ttmp(1) = 0.0
@@ -307,6 +303,10 @@ subroutine cgyro_equilibrium
      return
   endif
 #endif
+  if ((explicit_trap_flag == 1) .AND. (n_sim>1)) then
+     call cgyro_error("explicit_trap_flag=1 not supported in multi-simulation code.")
+     return
+  endif
 
 end subroutine cgyro_equilibrium
 

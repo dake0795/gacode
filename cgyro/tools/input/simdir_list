@@ -3,7 +3,6 @@ Local CGYRO templates:
 reg01: c1+f1+lin+ie +loc+mil+nrot
 reg02: c4+f1+lin+ie +loc+mil+nrot
 reg03: c4+f2+lin+ie +loc+mil+nrot
-reg04: c4+f2+lin+iec+pro+gen+ rot
 reg05: c4+f1+ nl+i  +loc+mil+nrot
 reg06: c4+f2+ nl+ie +loc+mil+nrot
 reg07: c4+f1+ nl+i  +loc+mil+ rot 

@@ -39,16 +39,8 @@ subroutine expro_compute_derived
   !---------------------------------------------------------------------
   ! Sanity checks
   !
-  if (expro_ctrl_numeq_flag == 1 .and. expro_nfourier == -1) then
-     print '(a)','ERROR: (expro) input.gacode.geo missing'
-     stop
-  endif
   if (expro_ctrl_quasineutral_flag == -1) then
      print '(a)','ERROR: (expro) expro_ctrl_quasineutral_flag not set.'
-     stop
-  endif
-  if (expro_ctrl_numeq_flag == -1) then
-     print '(a)','ERROR: (expro) expro_ctrl_numeq_flag not set.'
      stop
   endif
   !---------------------------------------------------------------------
@@ -177,35 +169,12 @@ subroutine expro_compute_derived
   endif
   !--------------------------------------------------------------------
 
-  !-------------------------------------------------------------------
-  ! Fourier coefficients for geometry (if they exist)
-  !
-  if (expro_nfourier > 0) then
-     do n=0,expro_nfourier
-        do i=1,4  
-
-           ! aR_n = expro_geo(1,n,:)
-           ! bR_n = expro_geo(2,n,:)
-           ! aZ_n = expro_geo(3,n,:)
-           ! bZ_n = expro_geo(4,n,:)
-
-           ! d(aR_n)/dr, d(bR_n)/dr, d(aZ_n)/dr, d(bZ_n)/dr
-
-           call bound_deriv(expro_dgeo(i,n,:),expro_geo(i,n,:),&
-                expro_rmin,expro_n_exp)
-        enddo
-     enddo
-  endif
-
-  !-------------------------------------------------------------------
-
   !---------------------------------------------------------------------
   ! Geometry factors: 
   !
   ! - w0, w0p, vol, volp
   !
-  geo_nfourier_in = expro_nfourier
-  geo_signb_in    = expro_signb
+  geo_signb_in = expro_signb
 
   ! r_min = a [m]
   r_min = expro_rmin(expro_n_exp)
@@ -254,16 +223,6 @@ subroutine expro_compute_derived
      geo_beta_star_in = 0d0
      !
      theta(1) = 0d0
-     if (expro_ctrl_numeq_flag == 0) then
-        ! Call geo with extended harmonic shape
-        geo_model_in = 0
-     else
-        ! Call geo with Fourier shape
-        geo_model_in = 1
-        geo_fourier_in(1:4,0:geo_nfourier_in) = expro_geo(:,:,i)/r_min
-        geo_fourier_in(5:8,0:geo_nfourier_in) = expro_dgeo(:,:,i)
-     endif
-
      call geo_interp(1,theta,.true.)
      if (minval(geov_jac_r) <= 0d0) then
         print '(a,i3,a,f5.2)','WARNING: (expro_util) J < 0 for i=',i,' in input.gacode: ',minval(geov_jac_r)

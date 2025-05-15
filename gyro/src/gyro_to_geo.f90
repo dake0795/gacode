@@ -44,6 +44,4 @@ subroutine gyro_to_geo(i0)
   geo_shape_sin3_in = 0.0
   geo_shape_s_sin3_in = 0.0
 
-  geo_fourier_in(:,:) = a_fourier_geo_s(:,:,i0)
-
 end subroutine gyro_to_geo

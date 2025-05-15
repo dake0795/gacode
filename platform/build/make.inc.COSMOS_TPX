@@ -1,0 +1,39 @@
+#----------------------------------------------------------
+# Cray (cosmos.sdsc.edu) [GPU nodes]
+#
+# - MI300A machine, 4x24(x2) CPU cores and 4x GPUs
+#----------------------------------------------------------
+
+IDENTITY="SDSC Cosmos"
+# not using HT, since we focus on GPU compute
+CORES_PER_NODE=96 
+NUMAS_PER_NODE=12
+
+# Fortran 90/95 compiler
+FC = ftn -J ${GACODE_ROOT}/modules
+
+# Fortran 77 compiler
+F77 = ${FC}
+
+# Compiler options/flags
+ifneq ($(GACODE_OMPGPU),1)
+FACC   =-hacc -DHIPGPU -DGACODE_GPU_AMD -I${HIPFORT_DIR}/include/hipfort/amdgcn -hacc_model=auto_async_none:no_fast_addr:no_deep_copy
+else
+FACC = -DOMPGPU -DHIPGPU -DGACODE_GPU_AMD -I${HIPFORT_DIR}/include/hipfort/amdgcn
+endif
+FOMP   =-homp
+FMATH  =-s real64
+FOPT   =-Ofast
+FDEBUG =-O1 -g -h bounds
+F2PY   = f2py --fcompiler=pg
+
+# System math libraries
+LMATH=-L${HIPFORT_DIR}/lib -L${ROCM_PATH}/lib -lhipfort-amdgcn -lhipfft -lamdhip64 -lxpmem
+
+# NetCDF
+NETCDF=-L${NETCDF_DIR}/lib -lnetcdff -lnetcdf
+NETCDF_INC = ${NETCDF_DIR}/include
+
+# Archive 
+ARCH = ar cr
+

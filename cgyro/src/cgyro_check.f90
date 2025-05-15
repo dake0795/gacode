@@ -127,28 +127,9 @@ subroutine cgyro_check
 
   case (1) 
      call cgyro_info('Equilibrium: s-alpha')
-     if (profile_model == 2) then
-        call cgyro_error('s-alpha equilibrium model not valid with experimental profiles')
-        return
-     endif
-
   case (2) 
      call cgyro_info('Equilibrium: Miller Extended Harmonic (MXH)')
-
-  case (3) 
-     call cgyro_info('Equilibrium: Fourier')
-
-     if (geo_ny <= 0) then
-        call cgyro_error('Fourier geometry coefficients missing.')
-        return
-     endif
-     if (udsymmetry_flag == 1) then
-        call cgyro_error('Cannot have UDSYMMETRY_FLAG=1 with general geometry.')
-        return
-     endif
-
   case default
-
      call cgyro_error('Invalid value for equilibrium_model')
      return
 

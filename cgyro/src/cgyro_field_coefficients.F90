@@ -235,15 +235,15 @@ subroutine cgyro_field_coefficients
      enddo
    enddo
    if ((collision_model /= 5) .AND. (collision_field_model == 1)) then
-    do ic=nc1,nc2
-     ic_loc = ic-nc1+1
+    do ic=nc_cl1,nc_cl2
+     ic_loc = ic-nc_cl1+1
      it = it_c(ic)
      do iv=1,nv
         is = is_v(iv)
         ix = ix_v(iv)
         ie = ie_v(iv)
         dvjvec_v(:,iv,itor,ic_loc) = dens2_rot(it,is)*w_exi(ie,ix)*z(is)* &
-             jvec_v(:,ic_loc,itor,iv)
+             jvec_v(:,ic_loc,itor,iv,1) ! all nsm are the same, use the 1st one
      enddo
     enddo
    endif

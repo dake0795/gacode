@@ -22,23 +22,25 @@ subroutine cgyro_calc_collision_cpu_fp32(nj_loc)
   !
   integer, intent(in) :: nj_loc
   !
-  integer :: ivp,j,k,itor
+  integer :: ivp,j,k,itor,ism
+  integer :: vcount
   complex, dimension(nv) :: bvec,cvec
   real :: cvec_re,cvec_im
   real :: cval
   ! --------------------------------------------------
 
-!$omp parallel do collapse(2) &
+  vcount = nv/nv_loc
+!$omp parallel do collapse(3) &
 !$omp&            private(ic,ic_loc,iv,ivp,cvec,bvec,cvec_re,cvec_im,cval,j,k) &
-!$omp&            shared(cap_h_v,fsendf,cmat_fp32)
+!$omp&            shared(cap_h_v,fsendf,cmat_fp32) firstprivate(vcount,nv,nj_loc)
   do itor=nt1,nt2
-   do ic=nc1,nc2
-
-     ic_loc = ic-nc1+1
+   do ic=nc_cl1,nc_cl2
+    do ism=1,n_sim
+     ic_loc = ic-nc_cl1+1
      ! Set-up the RHS: H = f + ze/T G phi
 
      do iv=1,nv
-        cvec(iv) = cap_h_v(ic_loc,itor,iv)
+        cvec(iv) = cap_h_v(ic_loc,itor,iv,ism)
      enddo
 
      bvec(:) = (0.0,0.0)
@@ -53,12 +55,13 @@ subroutine cgyro_calc_collision_cpu_fp32(nj_loc)
         enddo
      enddo
 
-    do k=1,nproc
-       do j=1,nj_loc
-          fsendf(j,itor,ic_loc,k) = bvec(j+(k-1)*nj_loc)
+    do k=1,vcount
+       do j=1,nj_loc ! == nv_loc
+          fsendf(j,itor,ic_loc,k+(ism-1)*vcount) = bvec(j+(k-1)*nj_loc)
        enddo
     enddo
 
+   enddo
   enddo
  enddo
 
@@ -74,23 +77,26 @@ subroutine cgyro_calc_collision_cpu_fp64(nj_loc)
   !
   integer, intent(in) :: nj_loc
   !
-  integer :: ivp,j,k,itor
+  integer :: ivp,j,k,itor,ism
+  integer :: vcount
   complex, dimension(nv) :: bvec,cvec
   real :: cvec_re,cvec_im
   real :: cval
   ! --------------------------------------------------
 
-!$omp parallel do collapse(2) &
+  vcount = nv/nv_loc
+!$omp parallel do collapse(3) &
 !$omp&            private(ic,ic_loc,iv,ivp,cvec,bvec,cvec_re,cvec_im,cval,j,k) &
-!$omp&            shared(cap_h_v,fsendf,cmat)
+!$omp&            shared(cap_h_v,fsendf,cmat) firstprivate(vcount,nv,nj_loc)
   do itor=nt1,nt2
-   do ic=nc1,nc2
+   do ic=nc_cl1,nc_cl2 ! == nc_loc_coll
+    do ism=1,n_sim
 
-     ic_loc = ic-nc1+1
+     ic_loc = ic-nc_cl1+1
      ! Set-up the RHS: H = f + ze/T G phi
 
      do iv=1,nv
-        cvec(iv) = cap_h_v(ic_loc,itor,iv)
+        cvec(iv) = cap_h_v(ic_loc,itor,iv,ism)
      enddo
 
      bvec(:) = (0.0,0.0)
@@ -105,12 +111,13 @@ subroutine cgyro_calc_collision_cpu_fp64(nj_loc)
         enddo
      enddo
 
-    do k=1,nproc
-       do j=1,nj_loc
-          fsendf(j,itor,ic_loc,k) = bvec(j+(k-1)*nj_loc)
+    do k=1,vcount
+       do j=1,nj_loc ! == nv_loc
+          fsendf(j,itor,ic_loc,k+(ism-1)*vcount) = bvec(j+(k-1)*nj_loc)
        enddo
     enddo
 
+   enddo
   enddo
  enddo
 
@@ -126,25 +133,28 @@ subroutine cgyro_calc_collision_cpu_m1(nj_loc)
   !
   integer, intent(in) :: nj_loc
   !
-  integer :: ivp,j,k,itor
+  integer :: ivp,j,k,itor,ism
   integer :: ie,is,ix,iep,isp,ixp
+  integer :: vcount
   complex, dimension(nv) :: bvec,cvec
   real :: cvec_re,cvec_im
   real :: cval
   ! --------------------------------------------------
 
-!$omp parallel do collapse(2) &
+  vcount = nv/nv_loc
+!$omp parallel do collapse(3) &
 !$omp&            private(ic,ic_loc,iv,ivp,cvec,bvec,cvec_re,cvec_im,cval,j,k) &
-!$omp&            private(ie,is,ix,iep,isp,ixp) &
+!$omp&            private(ie,is,ix,iep,isp,ixp) firstprivate(vcount,nv,nj_loc) &
 !$omp&            shared(cap_h_v,fsendf,cmat_fp32,cmat_stripes,cmat_e1,ie_v,is_v,ix_v)
   do itor=nt1,nt2
-   do ic=nc1,nc2
+   do ic=nc_cl1,nc_cl2
+    do ism=1,n_sim
 
-     ic_loc = ic-nc1+1
+     ic_loc = ic-nc_cl1+1
      ! Set-up the RHS: H = f + ze/T G phi
 
      do iv=1,nv
-        cvec(iv) = cap_h_v(ic_loc,itor,iv)
+        cvec(iv) = cap_h_v(ic_loc,itor,iv,ism)
      enddo
 
      bvec(:) = (0.0,0.0)
@@ -172,12 +182,13 @@ subroutine cgyro_calc_collision_cpu_m1(nj_loc)
         enddo
      enddo
 
-    do k=1,nproc
+    do k=1,vcount
        do j=1,nj_loc
-          fsendf(j,itor,ic_loc,k) = bvec(j+(k-1)*nj_loc)
+          fsendf(j,itor,ic_loc,k+(ism-1)*vcount) = bvec(j+(k-1)*nj_loc)
        enddo
     enddo
 
+   enddo
   enddo
  enddo
 end subroutine cgyro_calc_collision_cpu_m1
@@ -216,7 +227,8 @@ subroutine cgyro_calc_collision_simple_cpu(nj_loc)
   !
 
   integer :: is,ie,ix,jx,it,ir,j,k
-  integer :: ivp,itor
+  integer :: ivp,itor,ism
+  integer :: vcount
   complex, dimension(:,:,:),allocatable :: bvec,cvec
   complex :: bvec_flat(nv)
   real :: cvec_re,cvec_im
@@ -225,18 +237,21 @@ subroutine cgyro_calc_collision_simple_cpu(nj_loc)
   allocate(bvec(n_xi,n_energy,n_species))
   allocate(cvec(n_xi,n_energy,n_species))
 
-!$omp parallel do collapse(2) &
+  vcount = nv/nv_loc
+!$omp parallel do collapse(3) &
+!$omp&            firstprivate(vcount,nv,nj_loc) &
 !$omp&            private(ic_loc,ivp,iv,is,ix,jx,ie,ir,it,cvec_re,cvec_im,bvec,cvec,bvec_flat,k,j)
   do itor=nt1,nt2
-   do ic=nc1,nc2
-     ic_loc = ic-nc1+1
+   do ic=nc_cl1,nc_cl2
+    do ism=1,n_sim
+     ic_loc = ic-nc_cl1+1
      ir = ir_c(ic)
      it = it_c(ic)
 
      ! Set-up the RHS: H = f + ze/T G phi
 
      do iv=1,nv
-        cvec(ix_v(iv),ie_v(iv),is_v(iv)) = cap_h_v(ic_loc,itor,iv)
+        cvec(ix_v(iv),ie_v(iv),is_v(iv)) = cap_h_v(ic_loc,itor,iv,ism)
      enddo
 
      ! Avoid singularity of n=0,p=0:
@@ -269,9 +284,11 @@ subroutine cgyro_calc_collision_simple_cpu(nj_loc)
 
      do k=1,nproc
         do j=1,nj_loc
-           fsendf(j,itor,ic_loc,k) = bvec_flat(j+(k-1)*nj_loc)
+           fsendf(j,itor,ic_loc,k+(ism-1)*vcount) = bvec_flat(j+(k-1)*nj_loc)
         enddo
      enddo
+
+    enddo
    enddo
   enddo
 
@@ -397,38 +414,45 @@ subroutine cgyro_calc_collision_gpu_fp32(nj_loc)
   integer, intent(in) :: nj_loc
   !
 
-  integer :: j,k,ivp,itor
+  integer :: j,k,ivp,itor,ism
+  integer :: vcount
   real :: b_re,b_im
   real :: cval
   ! --------------------------------------------------
 
+  vcount = nv/nv_loc
 #if defined(OMPGPU)
 !$omp target teams distribute parallel do simd collapse(4) &
-!$omp&         private(b_re,b_im,cval,ivp,iv) firstprivate(nproc,nj_loc,nv) &
-!$omp&         private(k,ic,j,ic_loc)
+!$omp&         private(b_re,b_im,cval,ivp,iv) firstprivate(nproc,nj_loc,nv,n_sim,vcount) &
+!$omp&         private(k,ic,j,ic_loc,ism)
 #else
 !$acc parallel loop collapse(4) gang vector &
-!$acc& private(b_re,b_im,cval,ivp,iv) firstprivate(nproc,nj_loc,nv) &
-!$acc& present(cmat_fp32,cap_h_v,fsendf)  private(k,ic,j,ic_loc)
+!$acc& private(b_re,b_im,cval,ivp,iv) firstprivate(nproc,nj_loc,nv,n_sim,vcount) &
+!$acc& present(cmat_fp32,cap_h_v,fsendf)  private(k,ic,j,ic_loc,ism)
 #endif
   do itor=nt1,nt2
-    do ic=nc1,nc2
-      do k=1,nproc
-        do j=1,nj_loc
-           ic_loc = ic-nc1+1
+    do ic=nc_cl1,nc_cl2  ! ==nc_loc_coll
+      do k=1,vcount
+        do j=1,nj_loc ! == nv_loc
+           ic_loc = ic-nc_cl1+1
            iv = j+(k-1)*nj_loc
-           b_re = 0.0
-           b_im = 0.0
+#if (!defined(OMPGPU)) && defined(_OPENACC)
+!$acc loop seq private(b_re,b_im,ivp)
+#endif
+           do ism=1,n_sim  ! keep ism as inner loop for cmat_fp32 locality
+            b_re = 0.0
+            b_im = 0.0
 #if (!defined(OMPGPU)) && defined(_OPENACC)
 !$acc loop seq private(cval)
 #endif
-           do ivp=1,nv
+            do ivp=1,nv
               cval = cmat_fp32(iv,ivp,ic_loc,itor)
-              b_re = b_re + cval*real(cap_h_v(ic_loc,itor,ivp))
-              b_im = b_im + cval*aimag(cap_h_v(ic_loc,itor,ivp))
-           enddo
+              b_re = b_re + cval*real(cap_h_v(ic_loc,itor,ivp,ism))
+              b_im = b_im + cval*aimag(cap_h_v(ic_loc,itor,ivp,ism))
+            enddo
 
-           fsendf(j,itor,ic_loc,k) = cmplx(b_re,b_im)
+            fsendf(j,itor,ic_loc,k+(ism-1)*vcount) = cmplx(b_re,b_im)
+           enddo
         enddo
       enddo
     enddo
@@ -447,7 +471,7 @@ subroutine cgyro_calc_collision_gpu_b2_fp32(nj_loc)
   !
 
   integer :: bsplit
-  integer :: j,k,ivp,b,itor
+  integer :: j,k,ivp,b,itor,ism
   integer :: n_ic_loc,d_ic_loc
   integer, dimension((gpu_bigmem_flag*2)+1) :: bic
   integer :: bs,be,bb
@@ -457,51 +481,57 @@ subroutine cgyro_calc_collision_gpu_b2_fp32(nj_loc)
 
   bsplit = gpu_bigmem_flag*2
 
-  n_ic_loc = nc2-nc1+1
+  n_ic_loc = nc_cl2-nc_cl1+1
   d_ic_loc = n_ic_loc/bsplit
 
-  bic(1) = nc1
+  bic(1) = nc_cl1
   do b=2,bsplit
      bic(b) = bic(b-1) + d_ic_loc
   enddo
-  bic(bsplit+1) = nc2+1
+  bic(bsplit+1) = nc_cl2+1
 
   do itor=nt1,nt2
    do b=1,bsplit
-    bs = bic(b)-nc1+1
-    be = bic(b+1)-nc1
+    bs = bic(b)-nc_cl1+1
+    be = bic(b+1)-nc_cl1
     ! by keeping only 2 alive at any time, we limit GPU memory use
     bb = modulo(b+itor,2)+2
 #if defined(OMPGPU)
     ! not using async for OMP for now
 !$omp target teams distribute parallel do simd collapse(3) &
-!$omp&         private(b_re,b_im,cval,ivp,iv) firstprivate(nproc,nj_loc,nv) &
+!$omp&         private(b_re,b_im,cval,ivp,iv) firstprivate(nproc,nj_loc,nv,n_sim) &
 !$omp&         map(to:cmat_fp32(:,:,bs:be,itor)) &
-!$omp&         private(k,j,ic_loc)
+!$omp&         private(k,j,ic_loc,ism)
 #else
     ! ensure there is not another even/odd already runnning
 !$acc wait(bb)
     ! now launch myself
 !$acc parallel loop gang vector collapse(3) &
-!$acc& private(b_re,b_im,cval,ivp,iv) firstprivate(nproc,nj_loc,nv) &
+!$acc& private(b_re,b_im,cval,ivp,iv) firstprivate(nproc,nj_loc,nv,n_sim) &
 !$acc& copyin(cmat_fp32(:,:,bs:be,itor)) present(cap_h_v,fsendf)  private(k,j,ic_loc) async(bb)
 #endif
     do ic_loc=bs,be
       do k=1,nproc
         do j=1,nj_loc
-           iv = j+(k-1)*nj_loc
-           b_re = 0.0
-           b_im = 0.0
+          iv = j+(k-1)*nj_loc
+#if (!defined(OMPGPU)) && defined(_OPENACC)
+!$acc loop seq private(b_re,b_im,ivp)
+#endif
+          do ism=1,n_sim  ! keep ism as inner loop for cmat_fp32 locality
+            b_re = 0.0
+            b_im = 0.0
 #if (!defined(OMPGPU)) && defined(_OPENACC)
 !$acc loop seq private(cval)
 #endif
-           do ivp=1,nv
+            do ivp=1,nv
               cval = cmat_fp32(iv,ivp,ic_loc,itor)
               b_re = b_re + cval*real(cap_h_v(ic_loc,itor,ivp))
               b_im = b_im + cval*aimag(cap_h_v(ic_loc,itor,ivp))
-           enddo
+            enddo
 
-           fsendf(j,itor,ic_loc,k) = cmplx(b_re,b_im)
+            ! TODO: Fix logic
+            fsendf(j,itor,ic_loc,k) = cmplx(b_re,b_im)
+          enddo
         enddo
       enddo
 
@@ -531,38 +561,45 @@ subroutine cgyro_calc_collision_gpu_fp64(nj_loc)
   integer, intent(in) :: nj_loc
   !
 
-  integer :: j,k,ivp,itor
+  integer :: j,k,ivp,itor,ism
+  integer :: vcount
   real :: b_re,b_im
   real :: cval
   ! --------------------------------------------------
 
+  vcount = nv/nv_loc
 #if defined(OMPGPU)
 !$omp target teams distribute parallel do simd collapse(4) &
-!$omp&         private(b_re,b_im,cval,ivp,iv) firstprivate(nproc,nj_loc,nv) &
-!$omp&         private(k,ic,j,ic_loc)
+!$omp&         private(b_re,b_im,cval,ivp,iv) firstprivate(nproc,nj_loc,nv,n_sim,vcount) &
+!$omp&         private(k,ic,j,ic_loc,ism)
 #else
 !$acc parallel loop collapse(4) gang vector &
-!$acc& private(b_re,b_im,cval,ivp,iv) firstprivate(nproc,nj_loc,nv) &
-!$acc& present(cmat,cap_h_v,fsendf)  private(k,ic,j,ic_loc)
+!$acc& private(b_re,b_im,cval,ivp,iv) firstprivate(nproc,nj_loc,nv,n_sim,vcount) &
+!$acc& present(cmat,cap_h_v,fsendf)  private(k,ic,j,ic_loc,ism)
 #endif
   do itor=nt1,nt2
-    do ic=nc1,nc2
-      do k=1,nproc
-        do j=1,nj_loc
-           ic_loc = ic-nc1+1
+    do ic=nc_cl1,nc_cl2 ! == nc_loc_coll
+      do k=1,vcount
+        do j=1,nj_loc ! == nv_loc
+           ic_loc = ic-nc_cl1+1
            iv = j+(k-1)*nj_loc
-           b_re = 0.0
-           b_im = 0.0
+#if (!defined(OMPGPU)) && defined(_OPENACC)
+!$acc loop seq private(b_re,b_im,ivp)
+#endif
+           do ism=1,n_sim  ! keep ism as inner loop for cmat locality
+             b_re = 0.0
+             b_im = 0.0
 #if (!defined(OMPGPU)) && defined(_OPENACC)
 !$acc loop seq private(cval)
 #endif
-           do ivp=1,nv
+             do ivp=1,nv
               cval = cmat(iv,ivp,ic_loc,itor)
-              b_re = b_re + cval*real(cap_h_v(ic_loc,itor,ivp))
-              b_im = b_im + cval*aimag(cap_h_v(ic_loc,itor,ivp))
-           enddo
+              b_re = b_re + cval*real(cap_h_v(ic_loc,itor,ivp,ism))
+              b_im = b_im + cval*aimag(cap_h_v(ic_loc,itor,ivp,ism))
+             enddo
 
-           fsendf(j,itor,ic_loc,k) = cmplx(b_re,b_im)
+             fsendf(j,itor,ic_loc,k+(ism-1)*vcount) = cmplx(b_re,b_im)
+           enddo
         enddo
       enddo
     enddo
@@ -581,7 +618,7 @@ subroutine cgyro_calc_collision_gpu_b2_fp64(nj_loc)
   !
 
   integer :: bsplit
-  integer :: j,k,ivp,b,itor
+  integer :: j,k,ivp,b,itor,ism
   integer :: n_ic_loc,d_ic_loc
   integer, dimension((gpu_bigmem_flag*2)+1) :: bic
   integer :: bs,be,bb
@@ -591,51 +628,58 @@ subroutine cgyro_calc_collision_gpu_b2_fp64(nj_loc)
 
   bsplit = gpu_bigmem_flag*2
 
-  n_ic_loc = nc2-nc1+1
+  n_ic_loc = nc_cl2-nc_cl1+1
   d_ic_loc = n_ic_loc/bsplit
 
-  bic(1) = nc1
+  bic(1) = nc_cl1
   do b=2,bsplit
      bic(b) = bic(b-1) + d_ic_loc
   enddo
-  bic(bsplit+1) = nc2+1
+  bic(bsplit+1) = nc_cl2+1
 
   do itor=nt1,nt2
    do b=1,bsplit
-    bs = bic(b)-nc1+1
-    be = bic(b+1)-nc1
+    bs = bic(b)-nc_cl1+1
+    be = bic(b+1)-nc_cl1
     ! by keeping only 2 alive at any time, we limit GPU memory use
     bb = modulo(b+itor,2)+2
 #if defined(OMPGPU)
     ! not using async for OMP for now
 !$omp target teams distribute parallel do simd collapse(3) &
-!$omp&         private(b_re,b_im,cval,ivp,iv) firstprivate(nproc,nj_loc,nv) &
+!$omp&         private(b_re,b_im,cval,ivp,iv) firstprivate(nproc,nj_loc,nv,n_sim) &
 !$omp&         map(to:cmat(:,:,bs:be,itor)) &
-!$omp&         private(k,j,ic_loc)
+!$omp&         private(k,j,ic_loc,ism)
 #else
     ! ensure there is not another even/odd already runnning
 !$acc wait(bb)
     ! now launch myself
 !$acc parallel loop gang vector collapse(3) &
-!$acc& private(b_re,b_im,cval,ivp,iv) firstprivate(nproc,nj_loc,nv) &
-!$acc& copyin(cmat(:,:,bs:be,itor)) present(cap_h_v,fsendf)  private(k,j,ic_loc) async(bb)
+!$acc& private(b_re,b_im,cval,ivp,iv) firstprivate(nproc,nj_loc,nv,n_sim) &
+!$acc& copyin(cmat(:,:,bs:be,itor)) present(cap_h_v,fsendf) &
+!$acc& private(k,j,ic_loc,ism) async(bb)
 #endif
     do ic_loc=bs,be
       do k=1,nproc
         do j=1,nj_loc
-           iv = j+(k-1)*nj_loc
-           b_re = 0.0
-           b_im = 0.0
+          iv = j+(k-1)*nj_loc
+#if (!defined(OMPGPU)) && defined(_OPENACC)
+!$acc loop seq private(b_re,b_im,ivp)
+#endif
+          do ism=1,n_sim  ! keep ism as inner loop for cmat locality
+            b_re = 0.0
+            b_im = 0.0
 #if (!defined(OMPGPU)) && defined(_OPENACC)
 !$acc loop seq private(cval)
 #endif
-           do ivp=1,nv
+            do ivp=1,nv
               cval = cmat(iv,ivp,ic_loc,itor)
-              b_re = b_re + cval*real(cap_h_v(ic_loc,itor,ivp))
-              b_im = b_im + cval*aimag(cap_h_v(ic_loc,itor,ivp))
-           enddo
+              b_re = b_re + cval*real(cap_h_v(ic_loc,itor,ivp,ism))
+              b_im = b_im + cval*aimag(cap_h_v(ic_loc,itor,ivp,ism))
+            enddo
 
-           fsendf(j,itor,ic_loc,k) = cmplx(b_re,b_im)
+            ! TODO: Fix logic
+            fsendf(j,itor,ic_loc,k) = cmplx(b_re,b_im)
+          enddo
         enddo
       enddo
 
@@ -665,43 +709,49 @@ subroutine cgyro_calc_collision_gpu_m1(nj_loc)
   integer, intent(in) :: nj_loc
   !
 
-  integer :: j,k,ivp,itor
+  integer :: j,k,ivp,itor,ism
   integer :: ie,is,ix,iep,isp,ixp
+  integer :: vcount
   real :: b_re,b_im
   real :: h_re,h_im
   real :: cval
   ! --------------------------------------------------
 
+  vcount = nv/nv_loc
 #if defined(OMPGPU)
 !$omp target teams distribute parallel do simd collapse(4) &
-!$omp&         private(b_re,b_im,cval,ivp,iv) firstprivate(nproc,nj_loc,nv) &
-!$omp&         private(k,ic,j,ic_loc,ie,is,ix) &
+!$omp&         private(b_re,b_im,cval,ivp,iv) firstprivate(nproc,nj_loc,nv,n_sim,vcount) &
+!$omp&         private(k,ic,j,ic_loc,ie,is,ix,ism) &
 !$omp&         private(iep,isp,ixp,h_re,h_im)
 #else
 !$acc parallel loop collapse(4) gang vector &
-!$acc& private(b_re,b_im,cval,ivp,iv) firstprivate(nproc,nj_loc,nv) &
+!$acc& private(b_re,b_im,cval,ivp,iv) firstprivate(nproc,nj_loc,nv,n_sim,vcount) &
 !$acc& present(cmat_fp32,cmat_stripes,cmat_e1,cap_h_v,fsendf,ie_v,is_v,ix_v) &
-!$acc& private(k,ic,j,ic_loc,ie,is,ix) &
+!$acc& private(k,ic,j,ic_loc,ie,is,ix,ism) &
 !$acc& private(iep,isp,ixp,h_re,h_im)
 #endif
   do itor=nt1,nt2
-   do ic=nc1,nc2
-     do k=1,nproc
-        do j=1,nj_loc
-           ic_loc = ic-nc1+1
-           iv = j+(k-1)*nj_loc
-           b_re = 0.0
-           b_im = 0.0
-           ie = ie_v(iv)
-           is = is_v(iv)
-           ix = ix_v(iv)
+   do ic=nc_cl1,nc_cl2 ! == nc_loc_coll
+     do k=1,vcount
+        do j=1,nj_loc ! == nv_loc
+          ic_loc = ic-nc_cl1+1
+          iv = j+(k-1)*nj_loc
+          ie = ie_v(iv)
+          is = is_v(iv)
+          ix = ix_v(iv)
 #if (!defined(OMPGPU)) && defined(_OPENACC)
-!$acc loop seq
+!$acc loop seq private(b_re,b_im,ivp)
 #endif
-           do ivp=1,nv
+          do ism=1,n_sim  ! keep ism as inner loop for cmat locality
+            b_re = 0.0
+            b_im = 0.0
+#if (!defined(OMPGPU)) && defined(_OPENACC)
+!$acc loop seq private(cval,h_re,h_im,iep,isp,ixp)
+#endif
+            do ivp=1,nv
               cval = cmat_fp32(iv,ivp,ic_loc,itor)
-              h_re = real(cap_h_v(ic_loc,itor,ivp))
-              h_im = aimag(cap_h_v(ic_loc,itor,ivp))
+              h_re = real(cap_h_v(ic_loc,itor,ivp,ism))
+              h_im = aimag(cap_h_v(ic_loc,itor,ivp,ism))
               if (ie<=n_low_energy) then
                  cval = cval + cmat_e1(ix,is,ie,ivp,ic_loc,itor)
               else
@@ -714,9 +764,10 @@ subroutine cgyro_calc_collision_gpu_m1(nj_loc)
               endif
               b_re = b_re + cval*h_re
               b_im = b_im + cval*h_im
-           enddo
+            enddo
 
-           fsendf(j,itor,ic_loc,k) = cmplx(b_re,b_im)
+            fsendf(j,itor,ic_loc,k+(ism-1)*vcount) = cmplx(b_re,b_im)
+          enddo
         enddo
      enddo
 
@@ -736,7 +787,7 @@ subroutine cgyro_calc_collision_gpu_b2_m1(nj_loc)
   !
 
   integer :: bsplit
-  integer :: j,k,ivp,b,itor
+  integer :: j,k,ivp,b,itor,ism
   integer :: ie,is,ix,iep,isp,ixp
   integer :: n_ic_loc,d_ic_loc
   integer, dimension((gpu_bigmem_flag*2)+1) :: bic
@@ -748,27 +799,27 @@ subroutine cgyro_calc_collision_gpu_b2_m1(nj_loc)
 
   bsplit = gpu_bigmem_flag*2
 
-  n_ic_loc = nc2-nc1+1
+  n_ic_loc = nc_cl2-nc_cl1+1
   d_ic_loc = n_ic_loc/bsplit
 
-  bic(1) = nc1
+  bic(1) = nc_cl1
   do b=2,bsplit
      bic(b) = bic(b-1) + d_ic_loc
   enddo
-  bic(bsplit+1) = nc2+1
+  bic(bsplit+1) = nc_cl2+1
 
   do itor=nt1,nt2
    do b=1,bsplit
-    bs = bic(b)-nc1+1
-    be = bic(b+1)-nc1
+    bs = bic(b)-nc_cl1+1
+    be = bic(b+1)-nc_cl1
     ! by keeping only 2 alive at any time, we limit GPU memory use
 #if defined(OMPGPU)
     ! not using async for OMP for now
 !$omp target teams distribute parallel do simd collapse(3) &
-!$omp&    firstprivate(nproc,nj_loc,nv) &
+!$omp&    firstprivate(nproc,nj_loc,nv,n_sim) &
 !$omp&     private(b_re,b_im,cval,ivp,iv) &
 !$omp&     private(iep,isp,ixp,h_re,h_im) &
-!$omp&     private(k,ic,j,ic_loc,ie,is,ix) &
+!$omp&     private(k,ic,j,ic_loc,ie,is,ix,ism) &
 !$omp&     map(to:cmat_fp32(:,:,bs:be,itor)) &
 !$omp&     map(to:cmat_stripes(:,:,:,:,bs:be,itor)) &
 !$omp&     map(to:cmat_e1(:,:,:,:,bs:be,itor))
@@ -777,8 +828,8 @@ subroutine cgyro_calc_collision_gpu_b2_m1(nj_loc)
     ! ensure there is not another even/odd already runnning
 !$acc wait(bb)
     ! now launch myself
-!$acc parallel loop gang vector firstprivate(nproc,nj_loc,nv) &
-!$acc& collapse(3) private(b_re,b_im,cval,ivp,iv) &
+!$acc parallel loop gang vector firstprivate(nproc,nj_loc,nv,n_sim) &
+!$acc& collapse(3) private(b_re,b_im,cval,ivp,iv,ism) &
 !$acc& present(cap_h_v,fsendf,ie_v,is_v,ix_v)  private(k,ic,j,ic_loc,ie,is,ix) &
 !$acc& copyin(cmat_fp32(:,:,bs:be,itor),cmat_stripes(:,:,:,:,bs:be,itor)) &
 !$acc& copyin(cmat_e1(:,:,:,:,bs:be,itor)) async(bb)
@@ -787,18 +838,22 @@ subroutine cgyro_calc_collision_gpu_b2_m1(nj_loc)
        do k=1,nproc
          do j=1,nj_loc
            iv = j+(k-1)*nj_loc
-           b_re = 0.0
-           b_im = 0.0
            ie = ie_v(iv)
            is = is_v(iv)
            ix = ix_v(iv)
 #if (!defined(OMPGPU)) && defined(_OPENACC)
+!$acc loop seq private(b_re,b_im,ivp)
+#endif
+           do ism=1,n_sim  ! keep ism as inner loop for cmat locality
+            b_re = 0.0
+            b_im = 0.0
+#if (!defined(OMPGPU)) && defined(_OPENACC)
 !$acc loop seq private(cval,iep,isp,ixp,h_re,h_im)
 #endif
-           do ivp=1,nv
+            do ivp=1,nv
               cval = cmat_fp32(iv,ivp,ic_loc,itor)
-              h_re = real(cap_h_v(ic_loc,itor,ivp))
-              h_im = aimag(cap_h_v(ic_loc,itor,ivp))
+              h_re = real(cap_h_v(ic_loc,itor,ivp,ism))
+              h_im = aimag(cap_h_v(ic_loc,itor,ivp,ism))
               if (ie<=n_low_energy) then
                  cval = cval + cmat_e1(ix,is,ie,ivp,ic_loc,itor)
               else
@@ -811,9 +866,11 @@ subroutine cgyro_calc_collision_gpu_b2_m1(nj_loc)
               endif
               b_re = b_re + cval*h_re
               b_im = b_im + cval*h_im
-           enddo
+            enddo
 
-           fsendf(j,itor,ic_loc,k) = cmplx(b_re,b_im)
+            ! TODO: Fix logic
+            fsendf(j,itor,ic_loc,k) = cmplx(b_re,b_im)
+           enddo
          enddo
        enddo
 
@@ -885,26 +942,28 @@ subroutine cgyro_calc_collision_simple_gpu(nj_loc)
   !
 
   integer :: is,ie,ix,jx,it,ir,j,k,jv
-  integer :: ivp,itor
+  integer :: ivp,itor, ism
+  integer :: vcount
 
   real :: b_re,b_im
   real :: cval
   ! --------------------------------------------------
 
+  vcount = nv/nv_loc
 #if defined(OMPGPU)
 !$omp target teams distribute collapse(2) &
-!$omp&         private(ic_loc,ir,it,b_re,b_im,cval) &
-!$omp&         private(is,ie,ix,jx,iv,k,j,jv)
+!$omp&         private(ic_loc,ir,it,b_re,b_im,cval,ism) &
+!$omp&         private(is,ie,ix,jx,iv,k,j,jv) firstprivate(vcount,nj_loc)
 #else
 !$acc parallel loop collapse(2) gang &
 !$acc&         present(ix_v,ie_v,is_v,iv_v,ir_c,it_c,px,cap_h_v,cmat_simple,fsendf) &
-!$acc&         private(ic_loc,ir,it,b_re,b_im,cval) &
-!$acc&         private(is,ie,ix,jx,iv,k,j,jv)
+!$acc&         private(ic_loc,ir,it,b_re,b_im,cval,ism) &
+!$acc&         private(is,ie,ix,jx,iv,k,j,jv) firstprivate(vcount,nj_loc)
 #endif
   do itor=nt1,nt2
-   do ic=nc1,nc2
+   do ic=nc_cl1,nc_cl2 ! == nc_loc_coll
 
-     ic_loc = ic-nc1+1
+     ic_loc = ic-nc_cl1+1
      ir = ir_c(ic)
      it = it_c(ic)
 
@@ -915,24 +974,27 @@ subroutine cgyro_calc_collision_simple_gpu(nj_loc)
 
         ! shortcut all the logic, just fill fsenf
 #if defined(OMPGPU)
-!$omp parallel do simd collapse(2) private(iv)
+!$omp parallel do simd collapse(3) private(iv)
 #else
-!$acc loop collapse(2) vector private(iv)
+!$acc loop collapse(3) vector private(iv)
 #endif
-        do k=1,nproc
-           do j=1,nj_loc
+        do k=1,vcount
+          do ism=1,n_sim
+           do j=1,nj_loc ! == nv_loc
               iv=j+(k-1)*nj_loc
-              fsendf(j,itor,ic_loc,k) = cap_h_v(ic_loc,itor,iv)
+              fsendf(j,itor,ic_loc,k+(ism-1)*vcount) = cap_h_v(ic_loc,itor,iv,ism)
            enddo
+         enddo
         enddo
      else
 #if defined(OMPGPU)
-!$omp parallel do simd collapse(2) private(iv,jv,is,ie,ix,jx,b_re,b_im,cval)
+!$omp parallel do simd collapse(3) private(iv,jv,is,ie,ix,jx,b_re,b_im,cval)
 #else
-!$acc loop collapse(2) vector private(iv,jv,is,ie,ix,jx,b_re,b_im,cval)
+!$acc loop collapse(3) vector private(iv,jv,is,ie,ix,jx,b_re,b_im,cval)
 #endif
-        do k=1,nproc
-           do j=1,nj_loc
+        do k=1,vcount
+         do ism=1,n_sim
+           do j=1,nj_loc ! == nv_loc
               iv = j+(k-1)*nj_loc
               is = is_v(iv)
               ie = ie_v(iv)
@@ -947,11 +1009,12 @@ subroutine cgyro_calc_collision_simple_gpu(nj_loc)
                  cval = cmat_simple(ix,jx,ie,is,it,itor)
                  ! cvec_re(ix_v(jv),ie_v(jv),is_v(jv)) = real(cap_h_v(ic_loc,itor,jv))
                  ! b_re = b_re + cval*cvec_re(jx,ie,is)
-                 b_re = b_re + cval*real(cap_h_v(ic_loc,itor,jv))
-                 b_im = b_im + cval*aimag(cap_h_v(ic_loc,itor,jv))
+                 b_re = b_re + cval*real(cap_h_v(ic_loc,itor,jv,ism))
+                 b_im = b_im + cval*aimag(cap_h_v(ic_loc,itor,jv,ism))
               enddo
-              fsendf(j,itor,ic_loc,k) = cmplx(b_re,b_im)
+              fsendf(j,itor,ic_loc,k+(ism-1)*vcount) = cmplx(b_re,b_im)
            enddo
+         enddo
         enddo
      endif
 

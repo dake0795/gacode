@@ -39,8 +39,6 @@ module neo_globals
   real, dimension(0:n_shape) :: shape_cos_in
   real, dimension(0:n_shape) :: shape_s_cos_in
   real :: beta_star_in
-  integer :: geo_ny_in
-  real, dimension(8,0:32) :: geo_yin_in
 
   real, dimension(11) :: profile_dlnndr_scale
   real, dimension(11) :: profile_dlntdr_scale
@@ -90,7 +88,6 @@ module neo_globals
   integer :: collision_model 
   integer :: profile_model
   integer :: profile_erad0_model
-  integer :: profile_equilibrium_model
   integer :: rotation_model
   integer :: ae_flag
   integer :: spitzer_model
@@ -173,9 +170,6 @@ module neo_globals
   real, dimension(:,:), allocatable :: shape_cos
   real, dimension(:,:), allocatable :: shape_s_cos
   real, dimension(:), allocatable :: beta_star
-  integer :: geo_numeq_flag
-  integer :: geo_ny
-  real, dimension(:,:,:), allocatable :: geo_yin
   !
   real, dimension(:), allocatable :: temp_ae, dens_ae, dlnndr_ae, dlntdr_ae
   ! ele temp and dens -- used only if ade (for Poisson calculation)

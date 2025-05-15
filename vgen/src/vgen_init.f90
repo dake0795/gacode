@@ -20,14 +20,6 @@ subroutine vgen_init
   EXPRO_ctrl_quasineutral_flag = 1
   EXPRO_ctrl_n_ion = neo_n_species_in + neo_ae_flag_in - 1
   n_ions = EXPRO_ctrl_n_ion
-  
-  ! Set equilibrium option for EXPRO
-
-  if (neo_equilibrium_model_in == 3) then
-     EXPRO_ctrl_numeq_flag = 1
-  else
-     EXPRO_ctrl_numeq_flag = 0
-  endif
 
   call expro_read('input.gacode',MPI_COMM_WORLD)
    

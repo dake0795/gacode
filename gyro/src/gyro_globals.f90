@@ -186,7 +186,6 @@ module gyro_globals
   integer :: eparallel_plot_flag
   integer :: entropy_flag
   integer :: extra_print_flag
-  integer :: num_equil_flag
   integer :: gkeigen_matrixonly
   integer :: gkeigen_mwrite_flag
   integer :: plot_u_flag
@@ -664,9 +663,6 @@ module gyro_globals
   real :: nu_ei_scale
   real :: nu_ii_scale
   !
-  ! Geometry Fourier coefficients
-  integer :: n_fourier_geo
-  real, dimension(8,0:32) :: a_fourier_geo
   !---------------------------------------------------------
 
   !---------------------------------------------
@@ -728,10 +724,6 @@ module gyro_globals
   ! nonuniform_grid_flag variables:
   !
   real, dimension(:), allocatable :: r_e
-  !
-  ! General geometry Fourier coefficients
-  !
-  real, dimension(:,:,:), allocatable :: a_fourier_geo_s
   !----------------------------------------------
 
   !---------------------------------------------------------

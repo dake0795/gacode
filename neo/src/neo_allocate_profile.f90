@@ -65,11 +65,6 @@ contains
        allocate(omega_rot_deriv(n_radial))
        allocate(psiN_polflux(n_radial))
        allocate(rhoN_torflux(n_radial))
-       
-       geo_numeq_flag = 0
-       geo_ny = 0
-       allocate(geo_yin(8,0:geo_ny,n_radial))
-       geo_yin(:,:,:) = 0.0
 
        initialized_sim = .true.
 
@@ -124,8 +119,6 @@ contains
        deallocate(omega_rot_deriv)
        deallocate(psiN_polflux)
        deallocate(rhoN_torflux)
-       
-       deallocate(geo_yin)
 
        initialized_sim = .false.
 

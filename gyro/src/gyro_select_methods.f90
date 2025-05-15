@@ -314,7 +314,7 @@ subroutine gyro_select_methods
 
   case (3)
 
-     geometry_method = num_equil_flag
+     geometry_method = 0
 
      if (flat_profile_flag == 0) then
         call send_line(&
@@ -326,7 +326,7 @@ subroutine gyro_select_methods
 
   case (5)
 
-     geometry_method = num_equil_flag
+     geometry_method = 0
 
      call send_line('profiles             : FLAT')
 

@@ -45,7 +45,6 @@ program prgen
   read(1,*) verbose_flag
   read(1,*) ipccw
   read(1,*) btccw
-  read(1,*) nfourier
   read(1,*) lump_fast_flag
   read(1,*) true_aux_flag
   read(1,*) reorder_vec(1:10)

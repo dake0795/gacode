@@ -10,7 +10,7 @@ subroutine qlgyro_tglf_map
   use qlgyro_globals
   use tglf_interface
   USE tglf_kyspectrum
-  
+
   implicit none
 
   ! Local variables
@@ -51,12 +51,12 @@ subroutine qlgyro_tglf_map
   tglf_kygrid_model_in = kygrid_model
   tglf_ky_in = ky_in
   tglf_nky_in = n_ky
-  
+
   !----------------------------------------------------------------
   ! No. of fields
   if (n_field .eq. 2) tglf_use_bper_in = .true.
   if (n_field .eq. 3) tglf_use_bpar_in = .true.
-  
+
   !----------------------------------------------------------------
   ! Number of species (max=6)
   tglf_ns_in = n_ion+1
@@ -98,11 +98,10 @@ subroutine qlgyro_tglf_map
      tglf_rlts_in(i0) = dlntidr(i_ion)
      tglf_taus_in(i0) = ti(i_ion)
   enddo
-  
- 
+
   !----------------------------------------------------------------
   !   Debye length/rhos   te in ev, rho_s in cm ne in 10^13/cm^3
- ! tglf_debye_in = 7.43e2*sqrt(te/(ne))/abs(rho_s)
+  ! tglf_debye_in = 7.43e2*sqrt(te/(ne))/abs(rho_s)
 
   !----------------------------------------------------------------
   ! TGLF-specific quantities
@@ -124,63 +123,47 @@ subroutine qlgyro_tglf_map
   tglf_b_model_sa_in  = 0
   tglf_ft_model_sa_in = 1
 
-  if (qlgyro_num_equil_flag == 1) then
+  ! Model (Miller) shape
+  tglf_geometry_flag_in = 1 
 
-     ! Numerical (Fourier) shape
-     tglf_geometry_flag_in = 2
+  tglf_rmin_loc_in    = r_min
+  tglf_rmaj_loc_in    = r_maj
+  tglf_zmaj_loc_in    = zmag
+  tglf_drmajdx_loc_in = shift
+  tglf_dzmajdx_loc_in = dzmag
+  tglf_kappa_loc_in   = kappa
+  tglf_s_kappa_loc_in = s_kappa
+  tglf_delta_loc_in   = delta
+  tglf_s_delta_loc_in = s_delta
+  tglf_zeta_loc_in    = zeta
+  tglf_s_zeta_loc_in  = s_zeta
+  tglf_q_loc_in       = q_abs
+  tglf_q_prime_loc_in = q_prime
+  tglf_p_prime_loc_in = p_prime
+  tglf_beta_loc_in = betae_unit
 
-     tglf_q_fourier_in       = q_abs
-     tglf_q_prime_fourier_in = q_prime
-     tglf_p_prime_fourier_in = p_prime
-     tglf_nfourier_in        = n_fourier_geo
-     tglf_fourier_in(:,0:n_fourier_geo) = a_fourier_geo(:,0:n_fourier_geo)
-
-  else
-
-     ! Model (Miller) shape
-     tglf_geometry_flag_in = 1 
-
-     tglf_rmin_loc_in    = r_min
-     tglf_rmaj_loc_in    = r_maj
-     tglf_zmaj_loc_in    = zmag
-     tglf_drmajdx_loc_in = shift
-     tglf_dzmajdx_loc_in = dzmag
-     tglf_kappa_loc_in   = kappa
-     tglf_s_kappa_loc_in = s_kappa
-     tglf_delta_loc_in   = delta
-     tglf_s_delta_loc_in = s_delta
-     tglf_zeta_loc_in    = zeta
-     tglf_s_zeta_loc_in  = s_zeta
-     tglf_q_loc_in       = q_abs
-     tglf_q_prime_loc_in = q_prime
-     tglf_p_prime_loc_in = p_prime
-     tglf_beta_loc_in = betae_unit
-
-     tglf_shape_sin3_loc_in   = shape_sin3
-     tglf_shape_s_sin3_loc_in = shape_ssin3
-     tglf_shape_sin4_loc_in   = shape_sin4
-     tglf_shape_s_sin4_loc_in = shape_ssin4
-     tglf_shape_sin5_loc_in   = shape_sin5
-     tglf_shape_s_sin5_loc_in = shape_ssin5
-     tglf_shape_sin6_loc_in   = shape_sin6
-     tglf_shape_s_sin6_loc_in = shape_ssin6
-     tglf_shape_cos0_loc_in   = shape_cos0
-     tglf_shape_s_cos0_loc_in = shape_scos0
-     tglf_shape_cos1_loc_in   = shape_cos1
-     tglf_shape_s_cos1_loc_in = shape_scos1
-     tglf_shape_cos2_loc_in   = shape_cos2
-     tglf_shape_s_cos2_loc_in = shape_scos2
-     tglf_shape_cos3_loc_in   = shape_cos3
-     tglf_shape_s_cos3_loc_in = shape_scos3
-     tglf_shape_cos4_loc_in   = shape_cos4
-     tglf_shape_s_cos4_loc_in = shape_scos4
-     tglf_shape_cos5_loc_in   = shape_cos5
-     tglf_shape_s_cos5_loc_in = shape_scos5
-     tglf_shape_cos6_loc_in   = shape_cos6
-     tglf_shape_s_cos6_loc_in = shape_scos6
-
-  endif
-  !----------------------------------------------------------------
+  tglf_shape_sin3_loc_in   = shape_sin3
+  tglf_shape_s_sin3_loc_in = shape_ssin3
+  tglf_shape_sin4_loc_in   = shape_sin4
+  tglf_shape_s_sin4_loc_in = shape_ssin4
+  tglf_shape_sin5_loc_in   = shape_sin5
+  tglf_shape_s_sin5_loc_in = shape_ssin5
+  tglf_shape_sin6_loc_in   = shape_sin6
+  tglf_shape_s_sin6_loc_in = shape_ssin6
+  tglf_shape_cos0_loc_in   = shape_cos0
+  tglf_shape_s_cos0_loc_in = shape_scos0
+  tglf_shape_cos1_loc_in   = shape_cos1
+  tglf_shape_s_cos1_loc_in = shape_scos1
+  tglf_shape_cos2_loc_in   = shape_cos2
+  tglf_shape_s_cos2_loc_in = shape_scos2
+  tglf_shape_cos3_loc_in   = shape_cos3
+  tglf_shape_s_cos3_loc_in = shape_scos3
+  tglf_shape_cos4_loc_in   = shape_cos4
+  tglf_shape_s_cos4_loc_in = shape_scos4
+  tglf_shape_cos5_loc_in   = shape_cos5
+  tglf_shape_s_cos5_loc_in = shape_scos5
+  tglf_shape_cos6_loc_in   = shape_cos6
+  tglf_shape_s_cos6_loc_in = shape_scos6
 
   !----------------------------------------------------------------
   ! Electron beta used for electromagnetic calculations
@@ -218,7 +201,7 @@ subroutine qlgyro_tglf_map
   !  nky=0  (low-k only)
   !  tglf_nky_in = 12
   !-----------------------------------
-  
+
   !----------------------------------------------------------------
   ! Linear mode selection
   !
@@ -315,7 +298,7 @@ subroutine qlgyro_tglf_map
 
   ! end select
 
-  
+
   !----------------------------------------------------------------
   ! DUMP PARAMETERS
   !
@@ -336,7 +319,7 @@ subroutine qlgyro_tglf_map
   tglf_nn_max_error_in = qlgyro_tglf_nn_max_error
 
   if (flux_method == 6) then
-     
+
   end if
 
   call put_units(tglf_units_in)
@@ -348,7 +331,7 @@ subroutine qlgyro_tglf_map
        tglf_mass_in)
 
   call put_kys(tglf_ky_in)
-  
+
   call put_gaussian_width(tglf_width_in, &
        tglf_width_min_in, &
        tglf_nwidth_in, &
@@ -369,7 +352,7 @@ subroutine qlgyro_tglf_map
        tglf_xnue_in, &
        tglf_zeff_in, &
        tglf_debye_in)
-  
+
   call put_switches(tglf_iflux_in, &
        tglf_use_bper_in, &
        tglf_use_bpar_in, &
@@ -395,8 +378,8 @@ subroutine qlgyro_tglf_map
        tglf_filter_in, &
        tglf_damp_psi_in, &
        tglf_damp_sig_in)
-  
-  
+
+
   call put_model_parameters(tglf_adiabatic_elec_in, &
        tglf_alpha_e_in, &
        tglf_alpha_p_in, &
@@ -414,9 +397,9 @@ subroutine qlgyro_tglf_map
        tglf_vpar_shear_model_in)
 
   tglf_kygrid_model_in = kygrid_model
-  
+
   if (tglf_geometry_flag_in == 1 ) then
-     
+
      call put_miller_geometry(tglf_rmin_loc_in, &
           tglf_rmaj_loc_in, &
           tglf_zmaj_loc_in, &
@@ -456,14 +439,6 @@ subroutine qlgyro_tglf_map
           tglf_p_prime_loc_in, &
           tglf_beta_loc_in,  &
           tglf_kx0_loc_in)
-     
-  elseif (tglf_geometry_flag_in == 2)then
-
-     call put_fourier_geometry(tglf_q_fourier_in,  &
-          tglf_q_prime_fourier_in, &
-          tglf_p_prime_fourier_in, &
-          tglf_nfourier_in, &
-          tglf_fourier_in)
 
   else
 

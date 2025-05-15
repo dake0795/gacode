@@ -18,7 +18,6 @@ subroutine prgen_read_inputprofiles
   real :: b_ref,arho,rvbv
 
   expro_ctrl_quasineutral_flag = 0
-  expro_ctrl_numeq_flag = 0 
 
   !----------------------------------------------
 

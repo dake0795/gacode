@@ -11,7 +11,6 @@ subroutine vgen_getgeo
   integer :: n_theta=4
   real, dimension(4) :: theta=(/ 0.0, 1.57079632, 3.14159265, -1.57079632/)
 
-  GEO_nfourier_in = EXPRO_nfourier
   GEO_signb_in    = EXPRO_signb
 
   open(unit=1,file='out.vgen.geo',status='replace')
@@ -59,16 +58,7 @@ subroutine vgen_getgeo
      GEO_shape_cos6_in    = EXPRO_shape_cos6(i)
      GEO_shape_s_cos6_in  = EXPRO_shape_scos6(i)
      GEO_beta_star_in = 0.0
-     !
-     if (EXPRO_ctrl_numeq_flag == 0) then
-        ! Call GEO with model shape
-        GEO_model_in = 0
-     else
-        ! Call GEO with general (numerical) shape
-        GEO_model_in = 1
-        GEO_fourier_in(1:4,0:geo_nfourier_in) = EXPRO_geo(:,:,i)/r_min
-        GEO_fourier_in(5:8,0:geo_nfourier_in) = EXPRO_dgeo(:,:,i)
-     endif
+     GEO_model_in = 0       ! Call GEO with model shape
 
      call geo_interp(n_theta,theta,.true.)
      

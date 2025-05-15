@@ -96,13 +96,6 @@ subroutine qlgyro_gyro_map
   zeta   = gyro_zeta_in
   s_zeta = gyro_s_zeta_in
 
-  ! General geometry Fourier coefficients
-
-  qlgyro_num_equil_flag = gyro_num_equil_flag_in
-
-  n_fourier_geo = gyro_n_fourier_geo_in
-  a_fourier_geo(:,:) = gyro_a_fourier_geo_in(:,:)
-
   !rho_s = c_s* 
 
   if (qlgyro_rotation_flag == 1) then

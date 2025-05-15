@@ -162,13 +162,6 @@ module expro
        expro_sdlnnidr,&
        expro_sdlntidr
   !-----------------------------------------------------------
-
-  ! input.gacode.geo dimension and arrays
-
-  integer :: expro_nfourier
-  double precision, dimension(:,:,:), allocatable :: expro_geo
-  double precision, dimension(:,:,:), allocatable :: expro_dgeo
-
   ! Field orientation parameters
 
   integer :: expro_signb
@@ -177,8 +170,7 @@ module expro
   ! Control parameters
 
   integer :: expro_ctrl_n_ion = -1
-  integer :: expro_ctrl_quasineutral_flag 
-  integer :: expro_ctrl_numeq_flag
+  integer :: expro_ctrl_quasineutral_flag
   integer :: expro_error=0
   integer :: expro_jerr=0
 
@@ -650,25 +642,6 @@ contains
     enddo
 
 99  close(1)
-
-    ! ** input.gacode.geo **
-
-    nexp = expro_n_exp
-    open(unit=1,file=trim(thisinfile)//'.geo',status='old',iostat=ierr)
-    if (ierr == 0) then
-       call expro_skip_header(1)
-       call expro_icomm(expro_nfourier)
-       if (allocated(expro_geo)) deallocate(expro_geo)
-       if (allocated(expro_dgeo)) deallocate(expro_dgeo)
-       allocate(expro_geo(4,0:expro_nfourier,nexp)) ; expro_geo(:,:,:)=0.0
-       allocate(expro_dgeo(4,0:expro_nfourier,nexp)) ; expro_dgeo(:,:,:)=0.0
-       do i=1,nexp
-          call expro_scomm(expro_geo(:,:,i),4*(expro_nfourier+1))
-       enddo
-    else
-       expro_nfourier = -1
-    endif
-    close(1)
 
     if (expro_ctrl_n_ion <= expro_n_ion) then
        call expro_compute_derived

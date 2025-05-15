@@ -6,7 +6,6 @@ module locpargen_globals
   real :: psi0
   real :: a
   real, dimension(1) :: x,y
-  integer :: hasgeo
   integer :: qnflag
   integer :: appendflag
   integer :: ntheta

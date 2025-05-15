@@ -8,12 +8,15 @@ from matplotlib import rc
 rc('text',usetex=True)
 rc('font',size=16)
 
-def mygrep(f):
+#param = 'KY'
+param = 'dir'
+
+def mygrep(f,param):
    with open(f,'r') as file:
       for line in file:
-         if re.search('KY', line):
-            ky = line.strip().split('=')[1]
-   return ky
+         if re.search(param, line):
+            x = line.strip().split('=')[1]
+   return x
 
 r = './'
 
@@ -23,8 +26,11 @@ d = []
 for d0 in dirs:
    if os.path.isdir(d0):
       d.append(d0)
-      ky = mygrep(d0+'/input.cgyro')
-      k.append(float(ky))
+      if param == 'dir':
+         ky = int(d0[1:])
+      else:
+         ky = float(mygrep(d0+'/input.cgyro'))
+      k.append(ky)
 
 n = len(k)
 i = np.argsort(k)

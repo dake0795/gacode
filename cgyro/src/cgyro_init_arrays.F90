@@ -2,6 +2,7 @@ subroutine cgyro_init_arrays
 
   use mpi
   use cgyro_globals
+  use cgyro_io
   use parallel_lib
 
   implicit none
@@ -118,7 +119,16 @@ subroutine cgyro_init_arrays
 !$acc enter data copyin(jvec_c)
 #endif
 
-  call parallel_lib_rtrans_real(jvec_c,jvec_v)
+  if ((collision_model /= 5) .AND. (collision_field_model == 1)) then
+    call parallel_lib_rtrans_real(jvec_c,jvec_v)
+    do l=2, n_sim
+      if (maxval(abs(jvec_v(:,:,:,:,1)-jvec_v(:,:,:,:,l)))>1.e-7) then ! allow minor rounding errors
+         write(*,*) "ERROR: Not all jvec_v in the ensemble identical"
+         call cgyro_error("Not all jvec_v in the ensemble identical")
+         return
+      endif
+    enddo
+  endif
 
   if (nonlinear_flag == 1) then
 !

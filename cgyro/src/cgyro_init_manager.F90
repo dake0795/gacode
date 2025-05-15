@@ -217,10 +217,16 @@ subroutine cgyro_init_manager
      endif
 
      if ((collision_model /= 5) .AND. (collision_field_model == 1)) then
-       ! nc and nc_loc must be last, since it will be collated     
-       allocate(field_v(n_field,nt1:nt2,nc))
-       allocate(field_loc_v(n_field,nt1:nt2,nc1:nc2))
-       allocate(dvjvec_v(n_field,nv,nt1:nt2,nc_loc))
+       ! assuming all collision constants are the same between the simulations
+       allocate(dvjvec_v(n_field,nv,nt1:nt2,nc_loc_coll))
+       ! we do not really need all n_sim
+       ! but since n_sim is assumed to be small, the added cost is small
+       ! and this drastically similifies the code
+       ! But could be improved in the future
+       allocate(jvec_v(n_field,nc_loc_coll,nt1:nt2,nv,n_sim))
+       ! nc and nc_loc_coll must be last, since it will be collated     
+       allocate(field_v(n_field,nt1:nt2,n_sim,nc))
+       allocate(field_loc_v(n_field,nt1:nt2,n_sim,nc_cl1:nc_cl2))
 #if defined(OMPGPU)
 !$omp target enter data map(alloc:field_v,field_loc_v,dvjvec_v)
 #elif defined(_OPENACC)
@@ -279,7 +285,7 @@ subroutine cgyro_init_manager
      allocate(cap_h_c_old(nc,nv_loc,nt1:nt2))
      allocate(cap_h_c_old2(nc,nv_loc,nt1:nt2))
      allocate(cap_h_ct(nv_loc,nt1:nt2,nc))
-     allocate(cap_h_v(nc_loc,nt1:nt2,nv))
+     allocate(cap_h_v(nc_loc_coll,nt1:nt2,nv,n_sim))
      allocate(omega_cap_h(nc,nv_loc,nt1:nt2))
      allocate(omega_h(nc,nv_loc,nt1:nt2))
      if (triad_print_flag == 1) then
@@ -295,7 +301,6 @@ subroutine cgyro_init_manager
      allocate(omega_ss(n_field,nc,nv_loc,nt1:nt2))
      allocate(omega_sbeta(nc,nv_loc,nt1:nt2))
      allocate(jvec_c(n_field,nc,nv_loc,nt1:nt2))
-     allocate(jvec_v(n_field,nc_loc,nt1:nt2,nv))
      allocate(dvjvec_c(n_field,nc,nv_loc,nt1:nt2))
      allocate(jxvec_c(n_field,nc,nv_loc,nt1:nt2))
      allocate(upfac1(nc,nv_loc,nt1:nt2))
@@ -399,6 +404,10 @@ subroutine cgyro_init_manager
      endif
 
      if (collision_model == 5) then
+        if (nc_loc_coll/=nc_loc) then
+           call cgyro_error("CMAT sharing not supported for COLLISION_MODEL 5")
+           return
+        endif
         allocate(cmat_simple(n_xi,n_xi,n_energy,n_species,n_theta,nt1:nt2))
      else
         if (collision_precision_mode == 1) then
@@ -409,16 +418,16 @@ subroutine cgyro_init_manager
                n_low_energy = ie
              endif
            enddo
-           allocate(cmat_fp32(nv,nv,nc_loc,nt1:nt2))
-           allocate(cmat_stripes(n_xi,n_species,(n_low_energy+1):n_energy,n_xi,nc_loc,nt1:nt2))
-           allocate(cmat_e1(n_xi,n_species,n_low_energy,nv,nc_loc,nt1:nt2))
+           allocate(cmat_fp32(nv,nv,nc_loc_coll,nt1:nt2))
+           allocate(cmat_stripes(n_xi,n_species,(n_low_energy+1):n_energy,n_xi,nc_loc_coll,nt1:nt2))
+           allocate(cmat_e1(n_xi,n_species,n_low_energy,nv,nc_loc_coll,nt1:nt2))
 
            write (msg, "(A,I1,A)") "Using fp32 collision precision except e<=",n_low_energy," or same e&s."
            call cgyro_info(msg)
         else if (collision_precision_mode == 32) then
-           allocate(cmat_fp32(nv,nv,nc_loc,nt1:nt2))
+           allocate(cmat_fp32(nv,nv,nc_loc_coll,nt1:nt2))
         else
-           allocate(cmat(nv,nv,nc_loc,nt1:nt2))
+           allocate(cmat(nv,nv,nc_loc_coll,nt1:nt2))
         endif
      endif
 

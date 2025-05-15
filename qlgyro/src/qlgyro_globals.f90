@@ -250,22 +250,13 @@ module qlgyro_globals
   ! Proton mass in kg:
   !
   real, parameter :: kg_proton = 1.6726e-27
-
   !
   real :: b_ref
-  !
-  ! Geometry
-  !
-  integer :: n_fourier_geo
-  real, dimension(:,:), allocatable :: a_fourier_geo
   !
   ! Orientation
   !
   integer :: signb
   integer :: signq
-  !
-  integer :: qlgyro_num_equil_flag=1
-
   integer :: nspec_max=6
 
   ! Grad r correction term

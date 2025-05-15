@@ -19,7 +19,7 @@ subroutine cgyro_shear_hammett
 
   implicit none
 
-  integer :: ir,itor
+  integer :: ir,it,itor
   integer :: n_changes
   integer, dimension(nt1:nt2) :: change_sign
   integer :: my_sign
@@ -53,12 +53,12 @@ subroutine cgyro_shear_hammett
   if (n_changes > 0) then
 #if defined(OMPGPU)
 !$omp target teams distribute parallel do simd collapse(2) &
-!$omp&  private(ir,my_sign) map(to:change_sign)
+!$omp&  private(ir,it,my_sign) map(to:change_sign)
 #elif defined(_OPENACC)
-!$acc parallel loop collapse(2) independent gang vector_length(n_theta) &
-!$acc&              private(ir,my_sign) present(h_x,ic_c) copyin(change_sign)
+!$acc parallel loop collapse(2) independent gang &
+!$acc&              private(ir,it,my_sign) present(h_x,ic_c) copyin(change_sign)
 #else
-!$omp parallel do collapse(2) private(ir,my_sign)
+!$omp parallel do collapse(2) private(ir,it,my_sign)
 #endif
     do itor=nt1,nt2
      do iv_loc=1,nv_loc
@@ -70,20 +70,28 @@ subroutine cgyro_shear_hammett
 !acc loop seq
 #endif
        do ir=2,n_radial
-         h_x(ic_c(ir-1,:),iv_loc,itor) = h_x(ic_c(ir,:),iv_loc,itor)
+        do it=1,n_theta
+         h_x(ic_c(ir-1,it),iv_loc,itor) = h_x(ic_c(ir,it),iv_loc,itor)
+        enddo
        enddo
 
-       h_x(ic_c(n_radial,:),iv_loc,itor) = 0.0
+       do it=1,n_theta
+        h_x(ic_c(n_radial,it),iv_loc,itor) = 0.0
+       enddo
       else if (my_sign == -1) then
        ! Backward shearing
 #if (!defined(OMPGPU)) && defined(_OPENACC)
 !acc loop seq
 #endif
        do ir=n_radial-1,1,-1
-         h_x(ic_c(ir+1,:),iv_loc,itor) = h_x(ic_c(ir,:),iv_loc,itor)
+        do it=1,n_theta
+         h_x(ic_c(ir+1,it),iv_loc,itor) = h_x(ic_c(ir,it),iv_loc,itor)
+        enddo
        enddo
 
-       h_x(ic_c(1,:),iv_loc,itor) = 0.0
+       do it=1,n_theta
+        h_x(ic_c(1,it),iv_loc,itor) = 0.0
+       enddo
       endif
      enddo
     enddo

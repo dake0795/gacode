@@ -26,7 +26,7 @@ contains
     ! populate cmat with Galerkin based gyrokinetic Landau operator.
     ! cmat1 is only for comparison purposes
     use cgyro_globals, only : CGYRO_COMM_WORLD,vth,temp,mass,dens,temp_ele,mass_ele,dens_ele,rho,z,&
-         n_energy,e_max,n_xi,n_radial,n_theta,n_species,n_toroidal,nt1,nt2,nc_loc,nc1,nc2,nc,nv,&
+         n_energy,e_max,n_xi,n_radial,n_theta,n_species,n_toroidal,nt1,nt2,nc_loc_coll,nc_cl1,nc_cl2,nc,nv,&
          nu_ee,&
          xi,w_xi,& !needed for projleg calc
          collision_model,&   ! if this is 7, we switch to calculating Sugama.
@@ -950,8 +950,8 @@ contains
     allocate(chebweightarr(nkmax))
     !allocate(m1(n_energy,n_xi,n_energy,n_xi))
     do itor=nt1,nt2
-       do ic_loc=1,nc_loc
-          ic=ic_loc-1+nc1
+       do ic_loc=1,nc_loc_coll
+          ic=ic_loc-1+nc_cl1
           it=it_c(ic)
           target_k=k_perp(ic,itor)/bmag(it)/kperp_bmag_max
           !target_k=sin(.5*pi1*(target_ik-.5)/nk(ia,ib))**2
@@ -1009,7 +1009,7 @@ contains
     end if
     
     coltestmode: if(collision_test_mode==1) then
-       allocate(cmat1(nv,nv,nc_loc,nt1:nt2))
+       allocate(cmat1(nv,nv,nc_loc_coll,nt1:nt2))
        ! compute old collision operator in cmat1
        call old_sugama(cmat1) !<--- this is in this module.
 !!$    do ia=1,n_species
@@ -1027,8 +1027,8 @@ contains
        allocate(v2polytimesemat(n_energy,n_energy))
        ! I do not know how everything is distributed. I only know the collision matrix 
        allocate (nc1_proc(n_proc),nc2_proc(n_proc),nt1_proc(n_proc),nt2_proc(n_proc),proc_c(nc,0:n_toroidal))
-       nc1_proc(i_proc+1)=nc1
-       nc2_proc(i_proc+1)=nc2
+       nc1_proc(i_proc+1)=nc_cl1
+       nc2_proc(i_proc+1)=nc_cl2
        nt1_proc(i_proc+1)=nt1
        nt2_proc(i_proc+1)=nt2
        proc_c=0 ! dummy value if no processor is responsible
@@ -1056,7 +1056,7 @@ contains
              ! If proc_c==0 then there is nothing to be done.
              ! Otherwise we deal with it, if we are either the responsible processor or proc 0
              if (.not. (proc_c(ic,itor)==i_proc+1 .or. i_proc==0 .and. proc_c(ic,itor)/=0)) continue
-             ic_loc=ic+1-nc1
+             ic_loc=ic+1-nc_cl1
              do ia=1,n_species
                 specbloop: do ib=1,n_species
                    if (proc_c(ic,itor)==i_proc+1) then
@@ -1170,10 +1170,10 @@ contains
              ! If proc_c==0 then there is nothing to be done.
              ! Otherwise we deal with it, if we are either the responsible processor or proc 0
              if (.not. (proc_c(ic,itor)==i_proc+1 .or. i_proc==0 .and. proc_c(ic,itor)/=0)) continue
-             ic_loc=ic+1-nc1
+             ic_loc=ic+1-nc_cl1
              do ia=1,n_species
                 specbloop2: do ib=1,n_species
-                   if (ic>=nc1 .and. ic<=nc2) then
+                   if (ic>=nc_cl1 .and. ic<=nc_cl2) then
                       do jx=1,n_xi
                          do je=1,n_energy
                             jv=iv_v(je,jx,ib)
@@ -1255,7 +1255,7 @@ contains
        md=-1
        if (i_proc==0) then
           do itor=nt1,nt2
-             do ic_loc=1,nc_loc
+             do ic_loc=1,nc_loc_coll
                 do is=1,n_species
                    do ix=1,n_xi
                       do ie=1,n_energy
@@ -1336,7 +1336,7 @@ contains
   subroutine old_sugama(cmat)
 
     use cgyro_globals, only : vth,temp,mass,dens,temp_ele,dens_ele,rho,z,&
-         n_energy,e_max,n_xi,n_species,nt1,nt2,nc_loc,nc1,nc2,nv,&
+         n_energy,e_max,n_xi,n_species,nt1,nt2,nc_loc_coll,nc_cl1,nc_cl2,nv,&
          xi,w_e,w_exi,e_deriv1_mat,xi_lor_mat,energy,dens2_rot,dens_rot,vel,vel2,nu,&
          collision_ene_diffusion,collision_mom_restore,collision_kperp,&
          collision_ene_restore,collision_ion_model,&
@@ -1416,11 +1416,11 @@ contains
 
      if (collision_kperp == 1 .and. &
          (collision_mom_restore == 1 .or. collision_ene_restore == 1)) then
-       allocate(bessel(0:1,nv,nc_loc,nt1:nt2))
+       allocate(bessel(0:1,nv,nc_loc_coll,nt1:nt2))
 !$omp parallel do collapse(2) private(ic_loc,it,ie,ix,is,iv,arg,xi_s1s,xi_prop)
        do itor=nt1,nt2
-          do ic=nc1,nc2
-             ic_loc = ic-nc1+1
+          do ic=nc_cl1,nc_cl2
+             ic_loc = ic-nc_cl1+1
              it = it_c(ic)
              do iv=1,nv
                 is = is_v(iv)
@@ -1615,7 +1615,7 @@ contains
     deallocate(rsvect0)
     allocate(cmat_loc(nv,nv))
 !$omp  parallel do collapse(2) default(none) &
-!$omp& shared(nc1,nc2,nt1,nt2,nv,n_species,rho,is_ele,n_energy,n_xi) &
+!$omp& shared(nc_cl1,nc_cl2,nt1,nt2,nv,n_species,rho,is_ele,n_energy,n_xi) &
 !$omp& shared(collision_kperp) &
 !$omp& firstprivate(collision_mom_restore,collision_ene_restore) &
 !$omp& shared(dens_ele,temp_ele,dens_rot,dens2_rot) &
@@ -1630,9 +1630,9 @@ contains
 !$omp& private(cmat_loc) &
 !$omp& shared(cmat)
     do itor=nt1,nt2
-       do ic=nc1,nc2
+       do ic=nc_cl1,nc_cl2
 
-          ic_loc = ic-nc1+1
+          ic_loc = ic-nc_cl1+1
 
           it = it_c(ic)
           ir = ir_c(ic)

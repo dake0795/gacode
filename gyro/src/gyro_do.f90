@@ -139,7 +139,6 @@ subroutine gyro_do
   !
   ! Set geometry (GEO) library control variables
   !
-  GEO_nfourier_in = n_fourier_geo 
   GEO_model_in    = geometry_method
   GEO_signb_in    = -btccw
   !

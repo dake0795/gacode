@@ -20,32 +20,6 @@ subroutine cgyro_make_profiles
   !-------------------------------------------------------------
 
   !-------------------------------------------------------------
-  ! Local geometry treatment
-  !
-  if (equilibrium_model == 1) then
-     ! s-alpha
-     geo_numeq_flag = -1
-     geo_ny = 0      
-     allocate(geo_yin(8,0:geo_ny))
-     geo_yin(:,:) = 0.0
-  else if (equilibrium_model == 2) then
-     ! MXH
-     geo_numeq_flag = 0
-     geo_ny = 0
-     allocate(geo_yin(8,0:geo_ny))
-     geo_yin(:,:) = 0.0
-  else
-     ! Fourier
-     geo_numeq_flag = 1
-     geo_ny = geo_ny_in  
-     allocate(geo_yin(8,0:geo_ny))
-     do j=0,geo_ny
-        geo_yin(:,j) = geo_yin_in(:,j)
-     enddo
-  endif
-  !-------------------------------------------------------------
-
-  !-------------------------------------------------------------
   ! Plasma radial profiles (n,T,etc)
   !
   ! FIELD ORIENTATION NOTES:
@@ -62,8 +36,6 @@ subroutine cgyro_make_profiles
      ! Experimental profiles
 
      call expro_locsim_profiles(&
-          geo_numeq_flag,&
-          udsymmetry_flag,&
           quasineutral_flag,&
           n_species+ae_flag,&
           rmin,&
@@ -141,14 +113,6 @@ subroutine cgyro_make_profiles
      mass_ele = mass(is_ele)
      dlnndr_ele = dlnndr_loc(is_ele)
      dlntdr_ele = dlntdr_loc(is_ele)
-
-     ! Get interpolated geometry coefficients
-     if (geo_numeq_flag == 1) then
-        geo_ny = geo_ny_loc
-        deallocate(geo_yin)
-        allocate(geo_yin(8,0:geo_ny))
-        geo_yin = geo_yin_loc
-     endif
 
      ! Normalizing quantities
      dens_norm = dens_ele       ! ne e19/m3
@@ -310,13 +274,13 @@ subroutine cgyro_make_profiles
         num_ele = num_ele + 1
      endif
   enddo
-  if(num_ele == 0) then
-     if(ae_flag == 0) then
+  if (num_ele == 0) then
+     if (ae_flag == 0) then
         call cgyro_error('No electron species specified')
         return
      endif
-  else if(num_ele == 1) then
-     if(ae_flag == 1) then
+  else if (num_ele == 1) then
+     if (ae_flag == 1) then
         call cgyro_error('Electron species specified with adiabatic electron flag')
         return
      endif

@@ -196,7 +196,6 @@ subroutine gyro_read_input
   call readbc_int(entropy_flag)
   call readbc_int(extra_print_flag)
   call readbc_int(ord_rbf)
-  call readbc_int(num_equil_flag)
   call readbc_int(output_flag)
   call readbc_real(ipccw)
   call readbc_real(btccw)

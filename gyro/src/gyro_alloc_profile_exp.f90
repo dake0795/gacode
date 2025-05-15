@@ -55,8 +55,6 @@ subroutine gyro_alloc_profile_exp
      allocate(beta_unit_p(n_grid_exp))
      allocate(beta_unit_ptot_p(n_grid_exp))
   
-     if (num_equil_flag == 1) allocate(geo_p(8,0:n_fourier_geo,n_grid_exp))
-
   endif
 
 end subroutine gyro_alloc_profile_exp

@@ -10,9 +10,9 @@
 !  radial_profile_method = 1: 
 !    flat, profiles, s-alpha geometry
 !  radial_profile_method = 5: 
-!    flat profiles, s-alpha, model, or general geometry
+!    flat profiles, s-alpha or model geometry
 !  radial_profile_method = 3: 
-!    experimental profiles, model, or general geometry
+!    experimental profiles or model geometry
 !
 ! FIELD ORIENTATION NOTES:
 !  Field orientation is accomplished by giving signs to a minimal 
@@ -105,19 +105,10 @@ subroutine gyro_profile_init
   zmag_s(:)    = zmag0
   dzmag_s(:)   = dzmag0
 
-  !-------------------------------------------------------------------
-  ! General geometry Fourier coefficients
-  !
-  if (num_equil_flag == 1) then
-     do i=1,n_x
-        a_fourier_geo_s(:,:,i) = a_fourier_geo(:,:)
-     enddo
-  else
-     if (udsymmetry_flag == 1) then
-        call send_message('INFO: (GYRO) Forcing up-down symmetry (UDSYMMETRY_FLAG=1).')
-        zmag_s(:)  = 0.0
-        dzmag_s(:) = 0.0
-     endif
+  if (udsymmetry_flag == 1) then
+     call send_message('INFO: (GYRO) Forcing up-down symmetry (UDSYMMETRY_FLAG=1).')
+     zmag_s(:)  = 0.0
+     dzmag_s(:) = 0.0
   endif
   !-------------------------------------------------------------------
 
@@ -517,8 +508,6 @@ subroutine gyro_profile_init
          
         omega_eb_s(i) = gamma_e_s(ir_norm)*&
              n_1(in_1)*q_norm/r_norm*(r(i)-r_norm)
-
-        a_fourier_geo_s(:,:,i) = a_fourier_geo_s(:,:,ir_norm)
 
      enddo
 

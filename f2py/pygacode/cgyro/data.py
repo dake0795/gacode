@@ -26,9 +26,11 @@ class cgyrodata:
       if self.hiprec_flag:
          # double
          self.BYTE = 'float64'
+         self.CBYTE = 'complex128'
       else:
          # single
          self.BYTE = 'float32'
+         self.CBYTE = 'complex64'
 
       if not self.silent:
          print('INFO: (__init__) Detected precision '+self.BYTE)
@@ -37,20 +39,30 @@ class cgyrodata:
          self.getdata()
 
    # standard routine to read binary or ASCII data
-   def extract(self,f):
+   def extract(self,f,cmplx=False):
 
       start = time.time()
       if os.path.isfile(self.dir+'bin'+f):
          fmt = 'bin'
-         data = np.fromfile(self.dir+'bin'+f,dtype=self.BYTE)
+         if cmplx:
+            dtype = self.CBYTE
+         else:
+            dtype = self.BYTE   
+         data = np.fromfile(self.dir+'bin'+f,dtype=dtype)
       elif os.path.isfile(self.dir+'out'+f):
          fmt = 'out'
          data = np.fromfile(self.dir+'out'+f,dtype='float',sep=' ')
       else:
-         fmt  = 'null'
+         # File not found
+         fmt = 'null'
          data = []
 
-      t = '[T='+'{:.4f}s]'.format(time.time()-start)
+      dt = time.time()-start
+      # Write elapsed time if it is significant
+      if dt > 1e-4:
+         t = '[T='+'{:.4f}s]'.format(time.time()-start)
+      else:
+         t = ''
 
       return t,fmt,data
 
@@ -87,7 +99,7 @@ class cgyrodata:
       nd = 2*self.n_n*nt
       t,fmt,data = self.extract('.cgyro.freq')
       if fmt != 'null':
-         self.freq = np.reshape(data[0:nd],(2,self.n_n,nt),'F')
+         self.freq = np.reshape(data,(2,self.n_n,nt),'F')
          if not self.silent:
             print('INFO: (getdata) Read data in '+fmt+'.cgyro.freq '+t)
       #-----------------------------------------------------------------
@@ -97,23 +109,23 @@ class cgyrodata:
       #
       nd = 2*self.n_theta*self.n_radial*nt
       f='.cgyro.phib'
-      t,fmt,data = self.extract(f)
+      t,fmt,data = self.extract(f,cmplx=True)
       if fmt != 'null':
-         self.phib = np.reshape(data[0:nd],(2,self.n_theta*self.n_radial,nt),'F')
+         self.phib = np.reshape(data,(self.n_theta*self.n_radial,nt),'F')
          if not self.silent:
             print('INFO: (getdata) Read data in '+fmt+f+'  '+t)
 
       f='.cgyro.aparb'
-      t,fmt,data = self.extract(f)
+      t,fmt,data = self.extract(f,cmplx=True)
       if fmt != 'null':
-         self.aparb = np.reshape(data[0:nd],(2,self.n_theta*self.n_radial,nt),'F')
+         self.aparb = np.reshape(data,(self.n_theta*self.n_radial,nt),'F')
          if not self.silent:
             print('INFO: (getdata) Read data in '+fmt+f+' '+t)
 
       f='.cgyro.bparb'
-      t,fmt,data = self.extract(f)
+      t,fmt,data = self.extract(f,cmplx=True)
       if fmt != 'null':
-         self.bparb = np.reshape(data[0:nd],(2,self.n_theta*self.n_radial,nt),'F')
+         self.bparb = np.reshape(data,(self.n_theta*self.n_radial,nt),'F')
          if not self.silent:
             print('INFO: (getdata) Read data in '+fmt+f+' '+t)
       #-----------------------------------------------------------------
@@ -121,9 +133,9 @@ class cgyrodata:
       #-----------------------------------------------------------------
       # Ballooning distribution
       #
-      t,fmt,data = self.extract('.cgyro.hb')
+      t,fmt,data = self.extract('.cgyro.hb',cmplx=True)
       if fmt != 'null':
-         self.hb = np.reshape(data,(2,self.n_radial*self.n_theta,
+         self.hb = np.reshape(data,(self.n_radial*self.n_theta,
                                     self.n_species,self.n_xi,self.n_energy,nt),'F')
          if not self.silent:
             print('INFO: (getdata) Read data in '+fmt+'.cgyro.hb '+t)
@@ -261,60 +273,58 @@ class cgyrodata:
       nd = 2*self.n_radial*self.theta_plot*self.n_n*nt
 
       # 1a. kxky_phi
-      t,fmt,data = self.extract('.cgyro.kxky_phi')
+      t,fmt,data = self.extract('.cgyro.kxky_phi',cmplx=True)
       if fmt != 'null':
-         self.kxky_phi = np.reshape(data[0:nd],(2,self.n_radial,self.theta_plot,self.n_n,nt),'F')
+         self.kxky_phi = np.reshape(data,(self.n_radial,self.theta_plot,self.n_n,nt),'F')
          if not self.silent:
             print('INFO: (getbigfield) Read data in '+fmt+'.cgyro.kxky_phi '+t)
 
       # 1b. kxky_apar
-      t,fmt,data = self.extract('.cgyro.kxky_apar')
+      t,fmt,data = self.extract('.cgyro.kxky_apar',cmplx=True)
       if fmt != 'null':
-        self.kxky_apar = np.reshape(data[0:nd],(2,self.n_radial,self.theta_plot,self.n_n,nt),'F')
+        self.kxky_apar = np.reshape(data,(self.n_radial,self.theta_plot,self.n_n,nt),'F')
         if not self.silent:
            print('INFO: (getbigfield) Read data in '+fmt+'.cgyro.kxky_apar '+t)
  
       # 1c. kxky_bpar
-      t,fmt,data = self.extract('.cgyro.kxky_bpar')
+      t,fmt,data = self.extract('.cgyro.kxky_bpar',cmplx=True)
       if fmt != 'null':
-         self.kxky_bpar = np.reshape(data[0:nd],(2,self.n_radial,self.theta_plot,self.n_n,nt),'F')
+         self.kxky_bpar = np.reshape(data,(self.n_radial,self.theta_plot,self.n_n,nt),'F')
          if not self.silent:
             print('INFO: (getbigfield) Read data in '+fmt+'.cgyro.kxky_bpar '+t)
 
       # 2. kxky_n
       nd = 2*self.n_radial*self.theta_plot*self.n_species*self.n_n*nt
 
-      t,fmt,data = self.extract('.cgyro.kxky_n')
+      t,fmt,data = self.extract('.cgyro.kxky_n',cmplx=True)
       if fmt != 'null':
-         self.kxky_n = np.reshape(data[0:nd],(2,self.n_radial,self.theta_plot,self.n_species,self.n_n,nt),'F')
+         self.kxky_n = np.reshape(data,(self.n_radial,self.theta_plot,self.n_species,self.n_n,nt),'F')
          if not self.silent:
             print('INFO: (getbigfield) Read data in '+fmt+'.cgyro.kxky_n '+t)
 
       # 3. kxky_e
-      t,fmt,data = self.extract('.cgyro.kxky_e')
+      t,fmt,data = self.extract('.cgyro.kxky_e',cmplx=True)
 
       if fmt != 'null':
-         self.kxky_e = np.reshape(data[0:nd],(2,self.n_radial,self.theta_plot,self.n_species,self.n_n,nt),'F')
+         self.kxky_e = np.reshape(data,(self.n_radial,self.theta_plot,self.n_species,self.n_n,nt),'F')
          if not self.silent:
             print('INFO: (getbigfield) Read data in '+fmt+'.cgyro.kxky_e '+t)
 
       # 4. kxky_v
-      t,fmt,data = self.extract('.cgyro.kxky_v')
+      t,fmt,data = self.extract('.cgyro.kxky_v',cmplx=True)
 
       if fmt != 'null':
-        self.kxky_v = np.reshape(data[0:nd],(2,self.n_radial,self.theta_plot,self.n_species,self.n_n,nt),'F')
-        if not self.silent:
-           print('INFO: (data.py) Read data in '+fmt+'.cgyro.kxky_v.   '+t)
-
+         self.kxky_v = np.reshape(data,(self.n_radial,self.theta_plot,self.n_species,self.n_n,nt),'F')
+         if not self.silent:
+            print('INFO: (getbigfield) Read data in '+fmt+'.cgyro.kxky_v  '+t)
 
       # 5. triad
-      t,fmt,data = self.extract('.cgyro.triad')
+      t,fmt,data = self.extract('.cgyro.triad',cmplx=True)
       
       if fmt != 'null':
-        nd = 2*self.n_n*self.n_radial*self.n_species*nt*11
-        self.triad = np.reshape(data[0:nd],(2,self.n_species,self.n_radial,11,self.n_n,nt),'F')
-        if not self.silent:
-         print('INFO: (data.py) Read data in '+fmt+'.cgyro.triad.   '+t)
+         self.triad = np.reshape(data,(self.n_species,self.n_radial,11,self.n_n,nt),'F')
+         if not self.silent:
+            print('INFO: (getbigfield) Read data in '+fmt+'.cgyro.triad  '+t)
 
       #-----------------------------------------------------------------
 
@@ -605,26 +615,26 @@ class cgyrodata:
 
       if moment == 'phi':
          if field == 0:
-            f  = self.kxky_phi[0,1:,itheta,:,:]+1j*self.kxky_phi[1,1:,itheta,:,:]
+            f  = self.kxky_phi[1:,itheta,:,:]
             ft = TEXPHI
          elif field == 1:
-            f  = self.kxky_apar[0,1:,itheta,:,:]+1j*self.kxky_apar[1,1:,itheta,:,:]
+            f  = self.kxky_apar[1:,itheta,:,:]
             ft = TEXAPAR
          else:
-            f  = self.kxky_bpar[0,1:,itheta,:,:]+1j*self.kxky_bpar[1,1:,itheta,:,:]
+            f  = self.kxky_bpar[1:,itheta,:,:]
             ft = TEXBPAR
       elif moment == 'k':
          a = self.rhonorm/self.rho
-         f = (self.kxky_phi[0,1:,itheta,:,:]+1j*self.kxky_phi[1,1:,itheta,:,:])*self.kperp[:,:,None]*a
+         f = self.kxky_phi[1:,itheta,:,:]*self.kperp[:,:,None]*a
          ft = r'k_\perp'+self.rhoi+r'\, \phi'
       elif moment == 'n':
-         f  = self.kxky_n[0,1:,itheta,species,:,:]+1j*self.kxky_n[1,1:,itheta,species,:,:]
+         f  = self.kxky_n[1:,itheta,species,:,:]
          ft = TEXDN
       elif moment == 'e':
-         f  = self.kxky_e[0,1:,itheta,species,:,:]+1j*self.kxky_e[1,1:,itheta,species,:,:]
+         f  = self.kxky_e[1:,itheta,species,:,:]
          ft = TEXDE
       elif moment == 'v':
-         f  = self.kxky_v[0,1:,itheta,species,:,:]+1j*self.kxky_v[1,1:,itheta,species,:,:]
+         f  = self.kxky_v[1:,itheta,species,:,:]
          ft = TEXDV
 
       # 3D structure: f[r,n,time]

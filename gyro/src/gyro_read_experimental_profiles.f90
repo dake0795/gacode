@@ -25,7 +25,6 @@ subroutine gyro_read_experimental_profiles
   ! Read experimental profiles using EXPRO library.
   !
   EXPRO_ctrl_quasineutral_flag = density_method-1
-  EXPRO_ctrl_numeq_flag = num_equil_flag
   EXPRO_ctrl_n_ion = n_spec-1
 
   call expro_read(trim(path)//'input.gacode',GYRO_COMM_WORLD) 
@@ -33,14 +32,6 @@ subroutine gyro_read_experimental_profiles
 
   !---------------------------------------------------------------------
   n_grid_exp = EXPRO_n_exp
-  if (EXPRO_nfourier < 0) then
-     n_fourier_geo = 0
-     if (num_equil_flag == 1) then
-        call catch_error('ERROR: (GYRO) Geometry coefficients missing.')
-     endif
-  else
-     n_fourier_geo = EXPRO_nfourier
-  endif
   !
   call gyro_alloc_profile_exp
   !
@@ -111,22 +102,9 @@ subroutine gyro_read_experimental_profiles
   !----------------------------------------------------------------------------
 
   ! Retain up-down asymmetry from elevation in the case of Miller shape
-  if (num_equil_flag == 0 .and. udsymmetry_flag == 1) then
+  if (udsymmetry_flag == 1) then
      zmag_exp(:) = 0.0
      dzmag_p(:)  = 0.0
-  endif
-
-  ! Fill in general geometry parameters if they exist
-  if (num_equil_flag == 1) then
-
-     ! Fill in geometry arrays with original data from 
-     ! EXPRO routine.  Note that EXPRO_geo is in m, 
-     ! and EXPRO_dgeo is dimensionless.  All geo_p are 
-     ! dimensionless:
-
-     geo_p(1:4,:,:) = EXPRO_geo(:,:,:)/a_meters
-     geo_p(5:8,:,:) = EXPRO_dgeo(:,:,:)
-
   endif
 
   ! rhos_deuterium/a (dimensionless)

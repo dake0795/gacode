@@ -58,29 +58,6 @@ subroutine gyro_read_input_extra
   if (i_proc == 0 .and. lfe .eqv. .true.) close(1)
   !------------------------------------------------------------------
 
-  !-------------------------------------------------------- 
-  ! Read geometry Fourier coefficients if they exist.
-  ! 
-  if (i_proc == 0) then
-     inquire(file=trim(path)//'input.geo',exist=lfe)
-     if (lfe .eqv. .true.) then
-        open(unit=1,file=trim(path)//'input.geo',status='old')
-        call expro_skip_header(1)
-        read(1,*) n_fourier_geo
-        read(1,*) a_fourier_geo(:,0:n_fourier_geo)
-        close(1)
-     endif
-  endif
-  call MPI_BCAST(lfe,1,MPI_LOGICAL,0,GYRO_COMM_WORLD,i_err)
-  if (lfe .eqv. .true.) then
-     call MPI_BCAST(n_fourier_geo,1,MPI_INTEGER,0,GYRO_COMM_WORLD,i_err)
-     call MPI_BCAST(a_fourier_geo,size(a_fourier_geo),MPI_DOUBLE_PRECISION,0,GYRO_COMM_WORLD,i_err)
-  else
-     n_fourier_geo = 0
-     a_fourier_geo(:,:) = 0.0
-  endif
-  !--------------------------------------------------------
-
   if (debug_flag == 1 .and. i_proc == 0) then
      print *,'[read_input_extra done]'
   endif

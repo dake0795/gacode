@@ -24,7 +24,6 @@ program locpargen
   read(1,*) r0
   read(1,*) rho0
   read(1,*) psi0
-  read(1,*) hasgeo
   read(1,*) qnflag
   read(1,*) appendflag
   read(1,*) ntheta
@@ -32,8 +31,6 @@ program locpargen
   close(1)
   
   expro_ctrl_quasineutral_flag = qnflag
-  ! We don't need the numerical eq. flag set for this routine.
-  expro_ctrl_numeq_flag = hasgeo
 
   call expro_read('input.gacode',0)
   
@@ -67,8 +64,6 @@ program locpargen
   endif
   
   call expro_locsim_profiles(&
-       hasgeo,&
-       0,&
        qnflag,&
        nion+1,&
        r0,&
@@ -139,13 +134,7 @@ program locpargen
      do i=1,ntheta
         theta(i) = -pi+(i-1)*2*pi/ntheta
      enddo
-     if (hasgeo == 1) then
-        geo_model_in = 1
-        geo_nfourier_in = geo_ny_loc
-        geo_fourier_in = geo_yin_loc
-     else
-        geo_model_in = 0
-     endif
+     geo_model_in = 0
      geo_rmin_in = rmin_loc
      geo_rmaj_in = rmaj_loc
      geo_drmaj_in = shift_loc

@@ -21,7 +21,6 @@ module prgen_globals
   integer :: verbose_flag
   integer :: ipccw
   integer :: btccw
-  integer :: nfourier
   integer :: lump_fast_flag
   real :: psi0,psi1
 

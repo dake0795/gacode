@@ -91,17 +91,6 @@ subroutine vgen_compute_neo(i,vtor_diff, rotation_model, er0, &
        / (charge_norm_fac * abs(EXPRO_bunit(i))) &
        * 1.0e-4 / EXPRO_rmin(EXPRO_n_exp)
   
-  if(neo_equilibrium_model_in == 3) then
-     neo_geo_ny_in = EXPRO_nfourier
-     neo_geo_yin_in(:,:) = 0.0
-     do n=0,EXPRO_nfourier
-        do j=1,4  
-           neo_geo_yin_in(j,n)   = EXPRO_geo(j,n,i)/EXPRO_rmin(EXPRO_n_exp)
-           neo_geo_yin_in(j+4,n) = EXPRO_dgeo(j,n,i)
-        enddo
-     enddo
-  endif
-  
   ! Species-dependent parameters
   
   neo_dens_ae_in = EXPRO_ne(i) / dens_norm

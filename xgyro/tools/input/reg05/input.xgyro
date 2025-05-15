@@ -1,0 +1,4 @@
+SHARE_CMAT = 1
+N_DIRS = 2
+DIR_1 = c06a
+DIR_2 = c06b

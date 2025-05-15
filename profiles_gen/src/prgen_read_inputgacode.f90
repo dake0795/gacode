@@ -13,7 +13,6 @@ subroutine prgen_read_inputgacode
   implicit none
 
   expro_ctrl_quasineutral_flag = 0
-  expro_ctrl_numeq_flag = 0
 
   call expro_read(file_state,0)
 

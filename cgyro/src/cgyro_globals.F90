@@ -171,26 +171,25 @@ module cgyro_globals
   ! MPI/OpenMP variables and pointers
   ! 
   integer :: n_omp
+  logical :: have_COMM_4 = .FALSE.
   !
   integer :: i_err
   integer :: i_proc
   integer :: i_proc_1
   integer :: i_proc_2
   integer :: i_proc_3
-  integer :: i_proc_restart_io
+  integer :: i_proc_4
   integer :: n_proc
   integer :: n_proc_1
   integer :: n_proc_2
-  integer :: n_proc_restart_io
-  integer :: i_group_1
-  integer :: i_group_2
-  integer :: i_group_3
-  integer :: i_group_restart_io
+  integer :: n_proc_4
   integer :: CGYRO_COMM_WORLD
-  integer :: NEW_COMM_1
-  integer :: NEW_COMM_2
-  integer :: NEW_COMM_3
-  integer :: nv1,nv2,nc1,nc2
+  integer :: NEW_COMM_1  ! simple Linear
+  integer :: NEW_COMM_2  ! non-linear
+  integer :: NEW_COMM_3  ! simple linear by species
+  integer :: CGYRO_COMM_WORLD_4
+  integer :: NEW_COMM_4  ! aggregate linear, coll
+  integer :: nv1,nv2,nc1,nc2,nc_cl1,nc_cl2
   integer :: nsplit,nsplitA,nsplitB
   integer :: ns1,ns2
   integer, dimension(:), allocatable :: recv_status
@@ -204,6 +203,7 @@ module cgyro_globals
   integer :: nv_loc,iv_loc
   integer :: nc,ic
   integer :: nc_loc,ic_loc
+  integer :: nc_loc_coll   ! nc local slice for coll purposes, equals nc_loc for single simulation
   integer :: ns_loc
   integer, dimension(:), allocatable :: ie_v
   integer, dimension(:), allocatable :: ix_v
@@ -216,6 +216,9 @@ module cgyro_globals
   !
   integer :: nt1,nt2,nt_loc
   integer :: n_toroidal_procs
+  ! For multi-simulation handling
+  integer :: n_sim          ! how many simulations is coll processing at once
+  integer :: i_sim          ! 0-based order in n_sim
   !---------------------------------------------------------------
 
   !---------------------------------------------------------------
@@ -373,11 +376,11 @@ module cgyro_globals
   complex, dimension(:,:,:), allocatable :: cap_h_c_old2
   complex, dimension(:,:,:), allocatable :: cap_h_ct
   complex, dimension(:,:,:), allocatable :: cap_h_c_triad
-  complex, dimension(:,:,:), allocatable :: cap_h_v
+  complex, dimension(:,:,:,:), allocatable :: cap_h_v
   real, dimension(:,:,:,:), allocatable :: jvec_c
   real, dimension(:,:,:,:,:), allocatable :: jvec_c_nl ! used by NL only
   real(KIND=REAL32), dimension(:,:,:,:,:), allocatable :: jvec_c_nl32 ! used by NL only
-  real, dimension(:,:,:,:), allocatable :: jvec_v
+  real, dimension(:,:,:,:,:), allocatable :: jvec_v
   real, dimension(:,:,:,:), allocatable :: dvjvec_c
   real, dimension(:,:,:,:), allocatable :: dvjvec_v
   real, dimension(:,:,:,:), allocatable :: jxvec_c
@@ -386,14 +389,16 @@ module cgyro_globals
   ! Fields
   real, dimension(:,:,:), allocatable :: fcoef
   real, dimension(:,:,:), allocatable :: gcoef
-  complex, dimension(:,:,:), allocatable :: field, field_v
+  complex, dimension(:,:,:), allocatable :: field
   complex, dimension(:,:,:), allocatable :: field_dot
-  complex, dimension(:,:,:), allocatable :: field_loc, field_loc_v
+  complex, dimension(:,:,:), allocatable :: field_loc
   complex, dimension(:,:,:), allocatable :: field_old
   complex, dimension(:,:,:), allocatable :: field_old2
   complex, dimension(:,:,:), allocatable :: field_old3
   complex, dimension(:,:,:,:,:), allocatable :: moment_loc
   complex, dimension(:,:,:,:,:), allocatable :: moment
+  complex, dimension(:,:,:,:), allocatable :: field_v
+  complex, dimension(:,:,:,:), allocatable :: field_loc_v
   !
   ! Nonlinear fluxes (f=standard,c=central,g=global)
   real, dimension(:,:,:,:), allocatable :: cflux_loc
@@ -538,15 +543,6 @@ module cgyro_globals
   !
   ! Number of gridpoints for Miller geometry integration grid
   integer, parameter :: geo_ntheta=1001 
-  !---------------------------------------------------------------
-
-  !---------------------------------------------------------------
-  integer :: geo_ny_in
-  real, dimension(8,0:32) :: geo_yin_in
-  !
-  integer :: geo_numeq_flag
-  integer :: geo_ny
-  real, dimension(:,:), allocatable :: geo_yin
   !---------------------------------------------------------------
 
   real :: total_memory

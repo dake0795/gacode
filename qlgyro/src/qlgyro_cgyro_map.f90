@@ -90,10 +90,6 @@ subroutine qlgyro_cgyro_map
   shape_cos6  = cgyro_shape_cos6_in
   shape_scos6 = cgyro_shape_s_cos6_in
 
-  ! General geometry Fourier coefficients
-
-  qlgyro_num_equil_flag = cgyro_equilibrium_model_in
-
   !rho_s = c_s* 
 
   if (qlgyro_rotation_flag == 1) then
@@ -122,7 +118,6 @@ subroutine qlgyro_cgyro_map
   csda_norm = cgyro_vth_norm_in
 
 end subroutine qlgyro_cgyro_map
-
 
 !------------------------------------------------------------
 ! cgyro_qlgyro_map.f90

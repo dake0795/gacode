@@ -41,10 +41,7 @@ module geo
   double precision :: geo_beta_star_2_in = 0.0
 
   integer :: geo_ntheta_in=1001
-  integer :: geo_nfourier_in=0
   integer :: geo_model_in
-
-  double precision, dimension(8,0:32) :: geo_fourier_in
 
   ! Values interpolated at input vector locations
   
@@ -317,7 +314,6 @@ contains
     implicit none
     !
     integer :: n_theta
-    integer :: ny
     integer :: i
     integer :: n
     !
@@ -377,30 +373,6 @@ contains
     !-----------------------------------------------------------
 
     !-----------------------------------------------------------
-    ! Setup for case of general geomtry
-    !
-    ny = geo_nfourier_in
-    !
-    allocate(a_R(0:ny))
-    allocate(b_R(0:ny))
-    allocate(a_Z(0:ny))
-    allocate(b_Z(0:ny))
-    allocate(a_Rp(0:ny))
-    allocate(b_Rp(0:ny))
-    allocate(a_Zp(0:ny))
-    allocate(b_Zp(0:ny))
-    !
-    a_R(:)  = geo_fourier_in(1,0:ny)
-    b_R(:)  = geo_fourier_in(2,0:ny)
-    a_Z(:)  = geo_fourier_in(3,0:ny)
-    b_Z(:)  = geo_fourier_in(4,0:ny)
-    a_Rp(:) = geo_fourier_in(5,0:ny)
-    b_Rp(:) = geo_fourier_in(6,0:ny)
-    a_Zp(:) = geo_fourier_in(7,0:ny)
-    b_Zp(:) = geo_fourier_in(8,0:ny)
-    !-----------------------------------------------------------
-
-    !-----------------------------------------------------------
     ! Allocate internal variables
     !
     n_theta = geo_ntheta_in
@@ -443,130 +415,100 @@ contains
 
        geov_theta(i) = theta
 
-       if (geo_model_in == 0) then
+       !------------------------------------------------
+       ! Miller extended harmonic (MHX) parameterization
+       !------------------------------------------------
 
-          !-----------------------------------------
-          ! Generalized Miller-type parameterization
-          !-----------------------------------------
+       x = asin(geo_delta_in)
 
-          x = asin(geo_delta_in)
+       ! A
+       ! dA/dtheta
+       ! d^2A/dtheta^2
+       a    = theta &
+            + geo_shape_cos0_in &
+            + geo_shape_cos1_in*cos(theta) &
+            + geo_shape_cos2_in*cos(2*theta) &
+            + geo_shape_cos3_in*cos(3*theta) &
+            + geo_shape_cos4_in*cos(4*theta) &
+            + geo_shape_cos5_in*cos(5*theta) &
+            + geo_shape_cos6_in*cos(6*theta) &
+            + x*sin(theta) &
+            - geo_zeta_in*sin(2*theta) &
+            + geo_shape_sin3_in*sin(3*theta) &
+            + geo_shape_sin4_in*sin(4*theta) &
+            + geo_shape_sin5_in*sin(5*theta) &
+            + geo_shape_sin6_in*sin(6*theta)
+       a_t  = 1.0 &
+            - geo_shape_cos1_in*sin(theta) &
+            - 2*geo_shape_cos2_in*sin(2*theta) &
+            - 3*geo_shape_cos3_in*sin(3*theta) &
+            - 4*geo_shape_cos4_in*sin(4*theta) &
+            - 5*geo_shape_cos5_in*sin(5*theta) &
+            - 6*geo_shape_cos6_in*sin(6*theta) &
+            + x*cos(theta) &
+            - 2*geo_zeta_in*cos(2*theta) &
+            + 3*geo_shape_sin3_in*cos(3*theta) &
+            + 4*geo_shape_sin4_in*cos(4*theta) &
+            + 5*geo_shape_sin5_in*cos(5*theta) &
+            + 6*geo_shape_sin6_in*cos(6*theta) 
+       a_tt = -geo_shape_cos1_in*cos(theta) &
+            - 4*geo_shape_cos2_in*cos(2*theta) &
+            - 9*geo_shape_cos3_in*cos(3*theta) &
+            - 16*geo_shape_cos4_in*cos(4*theta) &
+            - 25*geo_shape_cos5_in*cos(5*theta) &
+            - 36*geo_shape_cos6_in*cos(6*theta) &
+            - x*sin(theta) &
+            + 4*geo_zeta_in*sin(2*theta) &
+            - 9*geo_shape_sin3_in*sin(3*theta) &
+            - 16*geo_shape_sin4_in*sin(4*theta) &
+            - 25*geo_shape_sin5_in*sin(5*theta) &
+            - 36*geo_shape_sin6_in*sin(6*theta) 
 
-          ! A
-          ! dA/dtheta
-          ! d^2A/dtheta^2
-          a    = theta &
-               + geo_shape_cos0_in &
-               + geo_shape_cos1_in*cos(theta) &
-               + geo_shape_cos2_in*cos(2*theta) &
-               + geo_shape_cos3_in*cos(3*theta) &
-               + geo_shape_cos4_in*cos(4*theta) &
-               + geo_shape_cos5_in*cos(5*theta) &
-               + geo_shape_cos6_in*cos(6*theta) &
-               + x*sin(theta) &
-               - geo_zeta_in*sin(2*theta) &
-               + geo_shape_sin3_in*sin(3*theta) &
-               + geo_shape_sin4_in*sin(4*theta) &
-               + geo_shape_sin5_in*sin(5*theta) &
-               + geo_shape_sin6_in*sin(6*theta)
-          a_t  = 1.0 &
-               - geo_shape_cos1_in*sin(theta) &
-               - 2*geo_shape_cos2_in*sin(2*theta) &
-               - 3*geo_shape_cos3_in*sin(3*theta) &
-               - 4*geo_shape_cos4_in*sin(4*theta) &
-               - 5*geo_shape_cos5_in*sin(5*theta) &
-               - 6*geo_shape_cos6_in*sin(6*theta) &
-               + x*cos(theta) &
-               - 2*geo_zeta_in*cos(2*theta) &
-               + 3*geo_shape_sin3_in*cos(3*theta) &
-               + 4*geo_shape_sin4_in*cos(4*theta) &
-               + 5*geo_shape_sin5_in*cos(5*theta) &
-               + 6*geo_shape_sin6_in*cos(6*theta) 
-          a_tt = -geo_shape_cos1_in*cos(theta) &
-               - 4*geo_shape_cos2_in*cos(2*theta) &
-               - 9*geo_shape_cos3_in*cos(3*theta) &
-               - 16*geo_shape_cos4_in*cos(4*theta) &
-               - 25*geo_shape_cos5_in*cos(5*theta) &
-               - 36*geo_shape_cos6_in*cos(6*theta) &
-               - x*sin(theta) &
-               + 4*geo_zeta_in*sin(2*theta) &
-               - 9*geo_shape_sin3_in*sin(3*theta) &
-               - 16*geo_shape_sin4_in*sin(4*theta) &
-               - 25*geo_shape_sin5_in*sin(5*theta) &
-               - 36*geo_shape_sin6_in*sin(6*theta) 
+       ! R(theta)
+       ! dR/dr
+       ! dR/dtheta
+       ! d^2R/dtheta^2
+       geov_bigr(i) = geo_rmaj_in + geo_rmin_in*cos(a)
+       geov_bigr_r(i) = geo_drmaj_in + cos(a) &
+            - sin(a) * &
+            (geo_shape_s_cos0_in &
+            + geo_shape_s_cos1_in*cos(theta) &
+            + geo_shape_s_cos2_in*cos(2*theta) &
+            + geo_shape_s_cos3_in*cos(3*theta) &
+            + geo_shape_s_cos4_in*cos(4*theta) &
+            + geo_shape_s_cos5_in*cos(5*theta) &
+            + geo_shape_s_cos6_in*cos(6*theta) &
+            + geo_s_delta_in/cos(x)*sin(theta) &
+            - geo_s_zeta_in*sin(2*theta) &
+            + geo_shape_s_sin3_in*sin(3*theta) &
+            + geo_shape_s_sin4_in*sin(4*theta) &
+            + geo_shape_s_sin5_in*sin(5*theta) &
+            + geo_shape_s_sin6_in*sin(6*theta))
+       geov_bigr_t(i) = -geo_rmin_in * a_t * sin(a)
+       bigr_tt = &
+            -geo_rmin_in*a_t**2*cos(a) &
+            -geo_rmin_in*a_tt*sin(a)
 
-          ! R(theta)
-          ! dR/dr
-          ! dR/dtheta
-          ! d^2R/dtheta^2
-          geov_bigr(i) = geo_rmaj_in + geo_rmin_in*cos(a)
-          geov_bigr_r(i) = geo_drmaj_in + cos(a) &
-               - sin(a) * &
-               (geo_shape_s_cos0_in &
-               + geo_shape_s_cos1_in*cos(theta) &
-               + geo_shape_s_cos2_in*cos(2*theta) &
-               + geo_shape_s_cos3_in*cos(3*theta) &
-               + geo_shape_s_cos4_in*cos(4*theta) &
-               + geo_shape_s_cos5_in*cos(5*theta) &
-               + geo_shape_s_cos6_in*cos(6*theta) &
-               + geo_s_delta_in/cos(x)*sin(theta) &
-               - geo_s_zeta_in*sin(2*theta) &
-               + geo_shape_s_sin3_in*sin(3*theta) &
-               + geo_shape_s_sin4_in*sin(4*theta) &
-               + geo_shape_s_sin5_in*sin(5*theta) &
-               + geo_shape_s_sin6_in*sin(6*theta))
-          geov_bigr_t(i) = -geo_rmin_in * a_t * sin(a)
-          bigr_tt = &
-               -geo_rmin_in*a_t**2*cos(a) &
-               -geo_rmin_in*a_tt*sin(a)
+       !-----------------------------------------------------------
 
-          !-----------------------------------------------------------
+       ! A
+       ! dA/dtheta
+       ! d^2A/dtheta^2
+       a    = theta
+       a_t  = 1.0
+       a_tt = 0.0
 
-          ! A
-          ! dA/dtheta
-          ! d^2A/dtheta^2
-          a    = theta
-          a_t  = 1.0
-          a_tt = 0.0
+       ! Z(theta)
+       ! dZ/dr
+       ! dZ/dtheta
+       ! d^2Z/dtheta^2
+       geov_bigz(i)   = geo_zmag_in+geo_kappa_in*geo_rmin_in*sin(a)
+       geov_bigz_r(i) = geo_dzmag_in + geo_kappa_in*(1.0+geo_s_kappa_in)*sin(a) 
+       geov_bigz_t(i) = geo_kappa_in*geo_rmin_in*cos(a)*a_t
+       bigz_tt   = -geo_kappa_in*geo_rmin_in*sin(a)*a_t**2+&
+            geo_kappa_in*geo_rmin_in*cos(a)*a_tt
 
-          ! Z(theta)
-          ! dZ/dr
-          ! dZ/dtheta
-          ! d^2Z/dtheta^2
-          geov_bigz(i)   = geo_zmag_in+geo_kappa_in*geo_rmin_in*sin(a)
-          geov_bigz_r(i) = geo_dzmag_in + geo_kappa_in*(1.0+geo_s_kappa_in)*sin(a) 
-          geov_bigz_t(i) = geo_kappa_in*geo_rmin_in*cos(a)*a_t
-          bigz_tt   = -geo_kappa_in*geo_rmin_in*sin(a)*a_t**2+&
-               geo_kappa_in*geo_rmin_in*cos(a)*a_tt
-
-       else
-
-          !-----------------------------------------
-          ! Fourier-expansion (completely general)
-          !-----------------------------------------
-
-          geov_bigr(i)   = 0.5*a_R(0)
-          geov_bigr_r(i) = 0.5*a_Rp(0)
-          geov_bigr_t(i) = 0.0
-          bigr_tt   = 0.0
-          do n=1,ny
-             geov_bigr(i) = geov_bigr(i)+a_R(n)*cos(n*theta)+b_R(n)*sin(n*theta)        
-             geov_bigr_r(i)  = geov_bigr_r(i)+a_Rp(n)*cos(n*theta)+b_Rp(n)*sin(n*theta)        
-             geov_bigr_t(i)  = geov_bigr_t(i)-n*a_R(n)*sin(n*theta)+n*b_R(n)*cos(n*theta) 
-             bigr_tt = bigr_tt-n*n*(a_R(n)*cos(n*theta)+b_R(n)*sin(n*theta)) 
-          enddo
-
-          geov_bigz(i)   = 0.5*a_Z(0)
-          geov_bigz_r(i) = 0.5*a_Zp(0)
-          geov_bigz_t(i) = 0.0
-          bigz_tt   = 0.0
-          do n=1,ny
-             geov_bigz(i)   = geov_bigz(i)+a_Z(n)*cos(n*theta)+b_Z(n)*sin(n*theta)        
-             geov_bigz_r(i) = geov_bigz_r(i)+a_Zp(n)*cos(n*theta)+b_Zp(n)*sin(n*theta)        
-             geov_bigz_t(i) = geov_bigz_t(i)-n*a_Z(n)*sin(n*theta)+n*b_Z(n)*cos(n*theta) 
-             bigz_tt   = bigz_tt-n*n*(a_Z(n)*cos(n*theta)+b_Z(n)*sin(n*theta)) 
-          enddo
-
-       endif
+       ! Geometry model independent calculations:
 
        g_tt = geov_bigr_t(i)**2+geov_bigz_t(i)**2
 
@@ -812,15 +754,6 @@ contains
     deallocate(ei)
     deallocate(loop)
     deallocate(beta_star)
-    !
-    deallocate(a_R)
-    deallocate(b_R)
-    deallocate(a_Z)
-    deallocate(b_Z)
-    deallocate(a_Rp)
-    deallocate(b_Rp)
-    deallocate(a_Zp)
-    deallocate(b_Zp)
     !-----------------------------------------------------------
 
   end subroutine geo_do

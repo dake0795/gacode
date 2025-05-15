@@ -187,17 +187,6 @@ subroutine neo_check
            write(io_neoout,30) 'equilibrium_model','MILLER'
         end if
 
-     case (3) 
-
-        if(silent_flag == 0 .and. i_proc == 0) then
-           write(io_neoout,30) 'equilibrium_model','GENERAL'
-        end if
-
-        if(geo_ny <= 0) then
-           call neo_error('ERROR: (NEO) geometry coefficients missing')
-           return
-        endif
-
      case default
 
         call neo_error('ERROR: (NEO) equilibrium_model invalid')
@@ -257,20 +246,6 @@ subroutine neo_check
         endif
      case default
         call neo_error('ERROR: (NEO) invalid profile_erad0_model')
-        return
-     end select
-
-     select case (profile_equilibrium_model)
-     case (1)
-        if (silent_flag == 0 .and. i_proc == 0) then
-           write(io_neoout,30) 'profile_equilibrium_model','WITH MILLER GEOMETRY'
-        end if
-     case (2)
-        if (silent_flag == 0 .and. i_proc == 0) then
-           write(io_neoout,30) 'profile_equilibrium_model','WITH GENERAL GEOMETRY'
-        endif
-     case default
-        call neo_error('ERROR: (NEO) invalid profile_equilibrium_model')
         return
      end select
 

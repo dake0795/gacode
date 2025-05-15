@@ -1,0 +1,32 @@
+#! /usr/bin/env bash
+# GACODE Parallel execution script (COSMOS_TPX)
+
+export MPICH_GPU_SUPPORT_ENABLED=1
+
+#env 1>&2
+
+#echo $SLURM_LOCALID
+let r4=SLURM_LOCALID/12
+let l4="$SLURM_LOCALID-($r4*12)"
+
+export ROCR_VISIBLE_DEVICES=${l4}
+export OMP_DEFAULT_DEVICE=0
+
+#let r3=${l4}/4
+#let s3="${r3}*4"
+#let s3b=${s3}+1
+#let s3c=${s3}+2
+#let l3="${l4}-${s3}"
+#export ROCR_VISIBLE_DEVICES=${s3},${s3b},${s3c}
+#export OMP_DEFAULT_DEVICE=${l3}
+
+echo "`uname -n` $SLURM_PROCID $SLURM_LOCALID $ROCR_VISIBLE_DEVICES $OMP_DEFAULT_DEVICE `taskset -pc $$`"
+
+# Note: Uncomment if hitting the CrayBLAS OMP bugs
+#export CRAYBLAS_ALLOC_TYPE=2
+#export CRAYBLAS_NUMA_MODE=0
+#export CRAYBLAS_FORCE_HEAP_ALLOC=1
+#ulimit -s unlimited
+
+exec "$@"
+

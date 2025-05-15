@@ -132,9 +132,6 @@ then
    echo
    echo "             -nharm <int>"
    echo "             Harmonic geometry coefficents (default=5)"
-   echo 
-   echo "             -nfourier <int>"
-   echo "             General legacy Fourier geometry coefficents in input.gacode.geo (off by default)"
    echo
    echo "             -plotpng"
    echo "             Generate diagnostic plots"
@@ -261,7 +258,6 @@ NPSI=256
 PSINORM=0.999
 NARC=600
 NHARM=5
-NFOURIER=0
 PLOTPNG=0
 
 # Extra datafiles
@@ -290,7 +286,6 @@ UFILETIME=null
 LOC_RAD=0
 LOC_RHO=0
 LOC_PSI=0
-HASGEO=0
 QNFLAG=0
 BANANA=0
 APPENDFLAG=0
@@ -320,7 +315,6 @@ while [ $# -gt 0 ] ; do
 
   -g) shift ; GFILE="$1" ; EFIT=1 ;;
 
-  -nfourier) shift ; NFOURIER=$1 ;;
   -nharm) shift ; NHARM=$1 ;;
   -plotpng) PLOTPNG=1 ;;
 
@@ -481,14 +475,9 @@ then
      echo "ERROR: (profiles_gen) You need to build the locpargen executable."
      exit 1
   fi
-  if [ -f input.gacode.geo ]
-  then
-      HASGEO=1
-  fi
   echo $LOC_RAD > input.locpargen
   echo $LOC_RHO >> input.locpargen
   echo $LOC_PSI >> input.locpargen
-  echo $HASGEO >> input.locpargen
   echo $QNFLAG >> input.locpargen
   echo $APPENDFLAG >> input.locpargen
   echo $NTHETA >> input.locpargen
@@ -550,13 +539,7 @@ then
    echo "SUBROUTINE_FLAG=1" >> input.neo
 
    cp ../$FILE input.gacode
-   if [ -f "../$FILE.geo" ]
-   then
-       cp ../$FILE.geo input.gacode.geo
-   else
-       echo "INFO: (profiles_gen) $FILE.geo not found -- using EQUILIBRIUM_MODEL=2 (miller geo)"
-       echo "EQUILIBRIUM_MODEL=2" >> input.neo
-   fi
+   echo "EQUILIBRIUM_MODEL=2" >> input.neo
 
    python $NEO_DIR/bin/neo_parse.py
 
@@ -584,13 +567,6 @@ then
 
    exit 0
 fi
-#=============================================================
-
-#=============================================================
-# If we make it here, its time for cleanup
-#
-echo "INFO: (profiles_gen) Removing old input.gacode* files"
-rm -f input.gacode.geo
 #=============================================================
 
 #=============================================================
@@ -625,8 +601,6 @@ echo $VERBOSE_FLAG >> $CONFIG
 echo $IPCCW >> $CONFIG
 echo $BTCCW >> $CONFIG
 
-# Fourier modes
-echo $NFOURIER >> $CONFIG
 echo $LUMP_FAST_FLAG >> $CONFIG
 echo $TRUE_AUX_FLAG >> $CONFIG
 
@@ -636,7 +610,7 @@ echo $TRUE_AUX_FLAG >> $CONFIG
 #==============================================================
 # Run Scikit-based mapper 
 if [ $EFIT -eq 1 ] ; then
-   python $MAPPER $GFILE $MAG $NARC $NPSI $NHARM $NFOURIER $PLOTPNG $PSINORM
+   python $MAPPER $GFILE $MAG $NARC $NPSI $NHARM $PLOTPNG $PSINORM
 fi
 #==============================================================
 

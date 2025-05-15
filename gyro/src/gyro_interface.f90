@@ -151,7 +151,6 @@ module gyro_interface
   integer :: gyro_entropy_flag_in = 0
   integer :: gyro_extra_print_flag_in = 0
   integer :: gyro_ord_rbf_in = 3
-  integer :: gyro_num_equil_flag_in = 0
   real    :: gyro_zmag_in = 0.0
   real    :: gyro_dzmag_in = 0.0
   integer :: gyro_output_flag_in = 1
@@ -187,10 +186,6 @@ module gyro_interface
   real :: gyro_den_norm_in=1.0
   real :: gyro_rhos_norm_in=8.3333333e-4
   real :: gyro_csda_norm_in=2.1850387e5
-
-  ! Inputs available via interface but not by INPUT
-  integer :: gyro_n_fourier_geo_in = 0
-  real, dimension(8,0:32) :: gyro_a_fourier_geo_in = 0.0
 
   ! Output parameters
   real, dimension(:), allocatable :: gyro_elec_pflux_out 
@@ -364,7 +359,6 @@ contains
     gyro_entropy_flag_in = entropy_flag
     gyro_extra_print_flag_in = extra_print_flag
     gyro_ord_rbf_in = ord_rbf
-    gyro_num_equil_flag_in = num_equil_flag
     gyro_zmag_in = zmag0
     gyro_dzmag_in = dzmag0
     gyro_output_flag_in = output_flag
@@ -392,9 +386,6 @@ contains
     gyro_fieldeigen_tol_in = fieldeigen_tol
     gyro_ic_method_in = ic_method
     gyro_zf_test_flag_in = zf_test_flag
-
-    gyro_n_fourier_geo_in = n_fourier_geo
-    gyro_a_fourier_geo_in(:,:) = a_fourier_geo(:,:)
 
     ! Normalisation Values
     gyro_b_unit_norm_in = b_unit_norm
@@ -565,7 +556,6 @@ contains
     entropy_flag = gyro_entropy_flag_in
     extra_print_flag = gyro_extra_print_flag_in
     ord_rbf = gyro_ord_rbf_in
-    num_equil_flag = gyro_num_equil_flag_in
     zmag0 = gyro_zmag_in
     dzmag0 = gyro_dzmag_in
     output_flag = gyro_output_flag_in
@@ -593,9 +583,6 @@ contains
     fieldeigen_tol = gyro_fieldeigen_tol_in
     ic_method = gyro_ic_method_in
     zf_test_flag = gyro_zf_test_flag_in
-
-    n_fourier_geo = gyro_n_fourier_geo_in
-    a_fourier_geo(:,:) = gyro_a_fourier_geo_in(:,:)
 
     path = gyro_path_in
 
@@ -757,7 +744,6 @@ contains
     write(1,20) 'ENTROPY_FLAG',gyro_entropy_flag_in
     write(1,20) 'EXTRA_PRINT_FLAG',gyro_extra_print_flag_in
     write(1,20) 'ORD_RBF',gyro_ord_rbf_in
-    write(1,20) 'NUM_EQUIL_FLAG',gyro_num_equil_flag_in
     write(1,30) 'ZMAG',gyro_zmag_in
     write(1,30) 'DZMAG',gyro_dzmag_in
     write(1,20) 'OUTPUT_FLAG',gyro_output_flag_in

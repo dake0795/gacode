@@ -13,4 +13,4 @@ AE_FLAG=0
 N_SPECIES=3
 
 # (2=model shape,3=general geometry)
-EQUILIBRIUM_MODEL=3
+EQUILIBRIUM_MODEL=2
