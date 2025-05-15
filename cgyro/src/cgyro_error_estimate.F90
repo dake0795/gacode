@@ -116,9 +116,11 @@ subroutine cgyro_error_estimate
 #if defined(OMPGPU)
   ! no async for OMPG{U for now
 !$omp target teams distribute parallel do simd collapse(3) &
+!$omp&    firstprivate(nt1,nt2,nv_loc,nc) &
 !$omp&    reduction(+:h_s,r_s)
 #else
-!$omp parallel do collapse(3) reduction(+:h_s,r_s)
+!$omp parallel do collapse(3) reduction(+:h_s,r_s) &
+!$omp&    firstprivate(nt1,nt2,nv_loc,nc)
 #endif
   do itor=nt1,nt2
    do iv_loc=1,nv_loc
@@ -243,35 +245,25 @@ subroutine cgyro_triad_setup
   enddo
 
 
-! Avoiding memory race: inner loop must remain sequential (no vector collapse) - J
 #if defined(OMPGPU)
-!$omp target teams distribute parallel collapse(2) &
-!$omp&         map(to:z,temp) &
-!$omp&         firstprivate(nt1,nt2,nv1,nv_loc,n_theta,n_radial) &
-!$omp&         default(none)
-  do itor=nt1,nt2
-    do ir=1,n_radial
-!$omp parallel do simd collapse(2) &
-!$omp& private(is,ix,ie,dv,dvr,cprod,cprod2) &
-!$omp& private(ic_loc_m)
+!$omp target teams distribute parallel do simd collapse(2) &
+!$omp&         private(iv_loc,it,ic_loc_m) &
+!$omp&         private(is,ix,ie,dv,dvr,cprod,cprod2) &
+!$omp&         firstprivate(nt1,nt2,n_radial,nv_loc,n_theta,nv1)
 #elif defined(_OPENACC)
-!$acc parallel loop gang collapse(2) &
-!$acc&         present(triad_loc_old,cap_h_c,field,dvjvec_c) &
-!$acc&         present(ic_c,is_v,ix_v,ie_v,w_exi,w_theta,dens2_rot,z,temp) &
-!$acc&         present(nt1,nt2,nv_loc,n_theta,n_radial) &
-!$acc&         firstprivate(nv1) &
-!$acc&         default(none)
-  do itor=nt1,nt2
-    do ir=1,n_radial
-!$acc loop seq collapse(2) &
+!$acc parallel loop gang vector collapse(2) default(present) &
+!$acc&         private(iv_loc,it,ic_loc_m) &
 !$acc&         private(is,ix,ie,dv,dvr,cprod,cprod2) &
-!$acc&         private(ic_loc_m)
+!$acc&         firstprivate(nt1,nt2,n_radial,nv_loc,n_theta,nv1)
 #else
-!$omp parallel do collapse(2) private(ic_loc_m) &
-!$omp&         private(is,ix,ie,dv,dvr,cprod,cprod2)
+!$omp parallel do collapse(2) &
+!$omp&         private(iv_loc,it,ic_loc_m) &
+!$omp&         private(is,ix,ie,dv,dvr,cprod,cprod2) &
+!$omp&         firstprivate(nt1,nt2,n_radial,nv_loc,n_theta,nv1)
+#endif
   do itor=nt1,nt2
     do ir=1,n_radial
-#endif
+      ! Avoiding memory race: inner loop must remain sequential (only collapse 2) - J
       do iv_loc_m=1,nv_loc
         do it=1,n_theta
    
@@ -319,13 +311,14 @@ subroutine cgyro_triad_diagnostics
   complex :: cprod,cprod2,thfac
 
 #if defined(OMPGPU)
-!$omp target teams distribute parallel do simd collapse(3)
+!$omp target teams distribute parallel do simd collapse(3) &
+!$omp&         firstprivate(nt1,nt2,n_radial,n_species)
 #elif defined(_OPENACC)
-!$acc parallel loop collapse(3) gang vector independent &
-!$acc&         present(triad_loc_old,triad_loc) &
-!$acc&         present(nt1,nt2,n_radial,n_species) default(none)
+!$acc parallel loop collapse(3) gang vector independent default(present) &
+!$acc&         firstprivate(nt1,nt2,n_radial,n_species)
 #else
 !$omp parallel do private(ir,is)
+!$omp&         firstprivate(nt1,nt2,n_radial,n_species)
 #endif
   do itor=nt1,nt2
       do ir=1,n_radial
@@ -346,42 +339,27 @@ subroutine cgyro_triad_diagnostics
   if (nsplitB > 0) then
 
 #if defined(OMPGPU)
-!$omp target teams distribute parallel collapse(2) &
-!$omp&         map(to:z,temp) &
-!$omp&         firstprivate(nt1,nt2,nv1,nv_loc,n_theta,n_radial,nsplit,nsplitA,nsplitB) &
-!$omp&         firstprivate(explicit_trap_flag,delta_t,up_theta) &
-!$omp&         firstprivate(box_size,sign_qs,nup_theta) &
-!$omp&         private(iterbox,jr0,jc,itd,itd_class,thfac) &
-!$omp&         default(none)
-  do itor=nt1,nt2
-    do ir=1,n_radial
-!$omp parallel do simd collapse(2) &
-!$omp& private(is,ix,ie,dv,dvr,cprod,cprod2,rval,rval2) &
-!$omp& private(iexch0,itor0,isplit0,iexch_base) &
-!$omp& private(id,ic_loc_m)
-#elif defined(_OPENACC)
-!$acc parallel loop gang collapse(2) &
-!$acc&         private(itorbox,jr0,jc,itd,itd_class,thfac) &
-!$acc&         present(h_x,g_x,cap_h_c,cap_h_c_old2,cap_h_c_triad,field,dvjvec_c,jvec_c) &
-!$acc&         present(ic_c,is_v,ix_v,ie_v,w_exi,w_theta,dens2_rot,z,temp) &
-!$acc&         present(omega_stream,vel,xi,thfac_itor,cderiv,uderiv) &
-!$acc&         present(px,rhs,fpackA,fpackB,epackA,epackB,diss_r,triad_loc,triad_loc_old) &
-!$acc&         present(nt1,nt2,nv_loc,n_theta,n_radial,nsplit,nsplitA,nsplitB) &
-!$acc&         firstprivate(delta_t,up_theta,nv1,box_size,sign_qs,nup_theta,explicit_trap_flag) &
-!$acc&         copyin(zf_scale) default(none)
-  do itor=nt1,nt2
-    do ir=1,n_radial
-!$acc loop seq collapse(2) &
-!$acc&         private(is,ix,ie,dv,dvr,cprod,cprod2,rval,rval2) &
-!$acc&         private(iexch0,itor0,isplit0,iexch_base) &
-!$acc&         private(id,ic_loc_m)
-#else
-!$omp parallel do collapse(2) private(ic_loc_m) &
+!$omp target teams distribute parallel do simd collapse(2) &
+!$omp&         private(iv_loc,it,ic_loc_m) &
 !$omp&         private(iexch0,itor0,isplit0,iexch_base,is,ix,ie,dv,dvr,rval,rval2,cprod,cprod2) &
-!$omp&         private(id,itorbox,jr0,jc,itd,itd_class,thfac)
+!$omp&         private(id,itorbox,jr0,jc,itd,itd_class,thfac) &
+!$omp&         firstprivate(nt1,nt2,n_radial,nv_loc,n_theta,nv1,nsplitA,nsplitB,nsplit,nup_theta)
+#elif defined(_OPENACC)
+!$acc parallel loop gang vector collapse(2) default(present) &
+!$acc&         private(iv_loc,it,ic_loc_m) &
+!$acc&         private(iexch0,itor0,isplit0,iexch_base,is,ix,ie,dv,dvr,rval,rval2,cprod,cprod2) &
+!$acc&         private(id,itorbox,jr0,jc,itd,itd_class,thfac) &
+!$acc&         firstprivate(nt1,nt2,n_radial,nv_loc,n_theta,nv1,nsplitA,nsplitB,nsplit,nup_theta)
+#else
+!$omp parallel do collapse(2) &
+!$omp&         private(iv_loc,it,ic_loc_m) &
+!$omp&         private(iexch0,itor0,isplit0,iexch_base,is,ix,ie,dv,dvr,rval,rval2,cprod,cprod2) &
+!$omp&         private(id,itorbox,jr0,jc,itd,itd_class,thfac) &
+!$omp&         firstprivate(nt1,nt2,n_radial,nv_loc,n_theta,nv1,nsplitA,nsplitB,nsplit,nup_theta)
+#endif
   do itor=nt1,nt2
     do ir=1,n_radial
-#endif
+      ! Avoiding memory race: inner loop must remain sequential (only collapse 2) - J
       do iv_loc_m=1,nv_loc
         do it=1,n_theta
            itorbox = itor*box_size*sign_qs
@@ -497,42 +475,26 @@ subroutine cgyro_triad_diagnostics
   else ! nsplitB==0
 
 #if defined(OMPGPU)
-!$omp target teams distribute parallel collapse(2) &
-!$omp&         map(to:z,temp) &
-!$omp&         firstprivate(nt1,nt2,nv1,nv_loc,n_theta,n_radial,nsplit,nsplitA) &
-!$omp&         firstprivate(explicit_trap_flag,delta_t,up_theta) &
-!$omp&         firstprivate(box_size,sign_qs,nup_theta) &
-!$omp&         private(iterbox,jr0,jc,itd,itd_class,thfac) &
-!$omp&         default(none)
-  do itor=nt1,nt2
-    do ir=1,n_radial
-!$omp parallel do simd collapse(2) &
-!$omp& private(is,ix,ie,dv,dvr,cprod,cprod2,rval,rval2) &
-!$omp& private(iexch0,itor0,isplit0,iexch_base) &
-!$omp& private(id,ic_loc_m)
-#elif defined(_OPENACC)
-!$acc parallel loop gang collapse(2) &
-!$acc&         private(itorbox,jr0,jc,itd,itd_class,thfac) &
-!$acc&         present(h_x,g_x,cap_h_c,cap_h_c_old2,cap_h_c_triad,field,dvjvec_c,jvec_c) &
-!$acc&         present(ic_c,is_v,ix_v,ie_v,w_exi,w_theta,dens2_rot,z,temp) &
-!$acc&         present(omega_stream,vel,xi,thfac_itor,cderiv,uderiv) &
-!$acc&         present(px,rhs,fpackA,fpackB,epackA,epackB,diss_r,triad_loc,triad_loc_old) &
-!$acc&         present(nt1,nt2,nv_loc,n_theta,n_radial,nsplit,nsplitA) &
-!$acc&         firstprivate(delta_t,up_theta,nv1,box_size,sign_qs,nup_theta,explicit_trap_flag) &
-!$acc&         copyin(zf_scale) default(none)
-  do itor=nt1,nt2
-    do ir=1,n_radial
-!$acc loop seq collapse(2) &
-!$acc&         private(is,ix,ie,dv,dvr,cprod,cprod2,rval,rval2) &
-!$acc&         private(iexch0,itor0,isplit0,iexch_base) &
-!$acc&         private(id,ic_loc_m)
-#else
-!$omp parallel do collapse(2) private(ic_loc_m) &
+!$omp target teams distribute parallel do simd collapse(2) &
+!$omp&         private(iv_loc,it,ic_loc_m) &
 !$omp&         private(iexch0,itor0,isplit0,iexch_base,is,ix,ie,dv,dvr,rval,rval2,cprod,cprod2) &
-!$omp&         private(id,itorbox,jr0,jc,itd,itd_class,thfac)
+!$omp&         private(id,itorbox,jr0,jc,itd,itd_class,thfac) &
+!$omp&         firstprivate(nt1,nt2,n_radial,nv_loc,n_theta,nv1,nsplitA,nsplit,nup_theta)
+#elif defined(_OPENACC)
+!$acc parallel loop gang vector collapse(2) default(present) &
+!$acc&         private(iv_loc,it,ic_loc_m) &
+!$acc&         private(iexch0,itor0,isplit0,iexch_base,is,ix,ie,dv,dvr,rval,rval2,cprod,cprod2) &
+!$acc&         private(id,itorbox,jr0,jc,itd,itd_class,thfac) &
+!$acc&         firstprivate(nt1,nt2,n_radial,nv_loc,n_theta,nv1,nsplitA,nsplit,nup_theta)
+#else
+!$omp parallel do collapse(2) &
+!$omp&         private(iv_loc,it,ic_loc_m) &
+!$omp&         private(iexch0,itor0,isplit0,iexch_base,is,ix,ie,dv,dvr,rval,rval2,cprod,cprod2) &
+!$omp&         private(id,itorbox,jr0,jc,itd,itd_class,thfac) &
+!$omp&         firstprivate(nt1,nt2,n_radial,nv_loc,n_theta,nv1,nsplitA,nsplit,nup_theta)
+#endif
   do itor=nt1,nt2
     do ir=1,n_radial
-#endif
       do iv_loc_m=1,nv_loc
         do it=1,n_theta
            itorbox = itor*box_size*sign_qs
@@ -635,13 +597,14 @@ subroutine cgyro_triad_diagnostics
 ! Compute Time difference
 
 #if defined(OMPGPU)
-!$omp target teams distribute parallel do simd collapse(3)
+!$omp target teams distribute parallel do simd collapse(3) &
+!$omp&         firstprivate(nt1,nt2,n_radial,n_species)
 #elif defined(_OPENACC)
-!$acc parallel loop collapse(3) gang vector independent &
-!$acc&         present(triad_loc_old,triad_loc) &
-!$acc&         firstprivate(nt1,nt2,n_radial,n_species,delta_t) default(none)
+!$acc parallel loop collapse(3) gang vector independent default(present) &
+!$acc&         firstprivate(nt1,nt2,n_radial,n_species)
 #else
 !$omp parallel do private(ir,is)
+!$omp&         firstprivate(nt1,nt2,n_radial,n_species)
 #endif
   do itor=nt1,nt2
       do ir=1,n_radial
