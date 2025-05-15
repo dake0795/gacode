@@ -780,6 +780,9 @@ subroutine cgyro_nl_fftw_mul_sub_mean(ny,nx,nt,uvm,uxm,vym,uym,vxm,inv_nxny)
     i_xt = (it*ny*nx) + ix*ny;
     y_mean_ux = 0.0 ; y_mean_uy = 0.0
     y_mean_vx = 0.0 ; y_mean_vy = 0.0
+#if (!defined(OMPGPU)) && defined(_OPENACC)
+!$acc loop vector private(i) reduction(+:y_mean_ux,y_mean_uy,y_mean_vx,y_mean_vy)
+#endif
     do iy=1,ny
       i = i_xt+iy
       ! remove ky=0
