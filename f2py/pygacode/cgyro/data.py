@@ -625,8 +625,15 @@ class cgyrodata:
             ft = TEXBPAR
       elif moment == 'k':
          a = self.rhonorm/self.rho
-         f = self.kxky_phi[1:,itheta,:,:]*self.kperp[:,:,None]*a
-         ft = r'k_\perp'+self.rhoi+r'\, \phi'
+         if field == 0:
+            f = self.kxky_phi[1:,itheta,:,:]*self.kperp[:,:,None]*a
+            ft = r'k_\perp'+self.rhoi+r'\, \phi'
+         elif field == 1:
+            f = self.kxky_apar[1:,itheta,:,:]*self.kperp[:,:,None]*a
+            ft = r'k_\perp'+self.rhoi+r'\, \delta Apar'
+         else:
+            f = self.kxky_bpar[1:,itheta,:,:]*self.kperp[:,:,None]*a
+            ft = r'k_\perp'+self.rhoi+r'\, \delta Bpar'
       elif moment == 'n':
          f  = self.kxky_n[1:,itheta,species,:,:]
          ft = TEXDN

@@ -468,7 +468,7 @@ class cgyrodata_plot(data.cgyrodata):
 
       self.getbigfield()
 
-      f = self.triad[0,spec,:,:,:,:]+1j*self.triad[1,spec,:,:,:,:]
+      f = self.triad[spec,:,:,:,:]
       # 0- Triad , 1- non-zonal pairs Triad , 2- d(Entropy)/dt, 3- W_k_{perp}/dt, 4- Entropy
       # 5- Diss.(radial) , 6- Diss.(theta) , 7- Diss.(Collision)
       f = f[:,0,:,:]
@@ -544,9 +544,9 @@ class cgyrodata_plot(data.cgyrodata):
       self.getbigfield()
 
       if spec==-1:
-         f = (self.triad[0,:,:,:,:,:] + 1j*self.triad[1,:,:,:,:,:]).sum(axis=0)
+         f = (self.triad[:,:,:,:,:]).sum(axis=0)
       else:
-         f  = self.triad[0,spec,:,:,:,:] + 1j*self.triad[1,spec,:,:,:,:]
+         f  = self.triad[spec,:,:,:,:]
       # 0- Triad , 1- non-zonal pairs Triad , 2- d(Entropy)/dt, 3- W_k_{perp}/dt, 4- Entropy
       # 5- Diss.(radial) , 6- Diss.(theta) , 7- Diss.(Collision)
       T  = f[:,0,:,:].real
@@ -675,7 +675,7 @@ class cgyrodata_plot(data.cgyrodata):
 
       self.getbigfield()
       
-      f = self.triad[0,:,:,:,:,:].sum(axis=0)
+      f = (self.triad[:,:,:,:,:].real).sum(axis=0)
       # 0- Triad , 1- non-zonal pairs Triad , 2- d(Entropy)/dt, 3- W_k_{perp}/dt, 4- Entropy
       # 5- Diss.(radial) , 6- Diss.(theta) , 7- Diss.(Collision)
       # 8,9,10 WE_lam, WE_pol, EM
@@ -761,13 +761,13 @@ class cgyrodata_plot(data.cgyrodata):
       # 5- Diss.(radial) , 6- Diss.(theta) , 7- Diss.(Collision)
       # 8,9,10 WE_lam, WE_pol, EM
       #triad(2,sp,rad,11,n_n,n_t) --> f(n_t,ntime)
-      f = np.sum(self.triad[0,0,:,8,:,:],axis=0)
+      f = np.sum((self.triad[0,:,8,:,:].real),axis=0)
       ave_we1 = time_average(f[:,:],t,imin,imax)
-      f = np.sum(self.triad[0,0,:,9,:,:],axis=0)
+      f = np.sum((self.triad[0,:,9,:,:].real),axis=0)
       ave_we2 = time_average(f[:,:],t,imin,imax)
-      f = np.sum(self.triad[0,0,:,10,:,:],axis=0)
+      f = np.sum((self.triad[0,:,10,:,:].real),axis=0)
       ave_wm = time_average(f[:,:],t,imin,imax)
-      f = np.sum(self.triad[0,:,:,4,:,:],axis=(0,1))
+      f = np.sum((self.triad[:,:,4,:,:].real),axis=(0,1))
       ave_en = time_average(f[:,:],t,imin,imax)
 
       if xin['fig'] is None:
