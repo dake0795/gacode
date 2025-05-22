@@ -100,8 +100,8 @@ def setlimits(a,fmin,fmax):
 def specmap(m_in,z_in):
 
   # Assume Deuterium normalization
-  m = int(m_in*2)
-  z = int(z_in)
+  m = int(np.round(m_in*2))
+  z = int(np.round(z_in))
 
   if z < 0:
     name = 'e'
@@ -135,7 +135,7 @@ def specmap(m_in,z_in):
   elif m > 180:
      name = 'W'
   else:
-     name = '?'
+     name = str(m)+'-'+str(z)
 
   return name
 

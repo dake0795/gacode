@@ -4,7 +4,7 @@
 export MPICH_GPU_SUPPORT_ENABLED=1
 
 # disable "smart" Cray BLAS
-export CRAYBLAS_LEVEL3_LEGACY=1
+#export CRAYBLAS_LEVEL3_LEGACY=1
 
 #env 1>&2
 

@@ -8,8 +8,8 @@ from matplotlib import rc
 rc('text',usetex=True)
 rc('font',size=16)
 
-#param = 'KY'
-param = 'dir'
+param = 'KY'
+#param = 'dir'
 
 def mygrep(f,param):
    with open(f,'r') as file:
@@ -29,7 +29,7 @@ for d0 in dirs:
       if param == 'dir':
          ky = int(d0[1:])
       else:
-         ky = float(mygrep(d0+'/input.cgyro'))
+         ky = float(mygrep(d0+'/input.cgyro',param))
       k.append(ky)
 
 n = len(k)

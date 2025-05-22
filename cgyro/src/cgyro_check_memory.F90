@@ -206,7 +206,7 @@ subroutine cgyro_check_memory(datafile)
            call cgyro_alloc_add_4d(io,nv,nv,nc_loc_coll,nt_loc,8,'cmat')
         endif
 #if defined(OMPGPU) || defined(_OPENACC)
-        if (gpu_bigmem_flag /= 1) then
+        if (gpu_bigmem_flag == 0) then
            write(io,*) 'Note: cmat is not in GPU memory'
         endif
 #endif

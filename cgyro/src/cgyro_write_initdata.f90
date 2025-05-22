@@ -13,7 +13,7 @@ subroutine cgyro_write_initdata
   implicit none
 
   integer :: p,in,is,it
-  real :: kymax,kyrat,dn,dt
+  real :: kymax,kyrat,dn,dt,rhoa
   real, external :: spectraldiss
   character(len=50) :: msg,lfmt
 
@@ -119,10 +119,11 @@ subroutine cgyro_write_initdata
 
      write(io,*)
      write(io,'(a)') &
-          ' i  z  n/n_norm   T/T_norm   m/m_norm     a/Ln       a/Lt       nu'
+          ' i  z  n/n_norm   T/T_norm   m/m_norm     a/Ln       a/Lt       nu       rho/rhos'
      do is=1,n_species
-        write(io,'(t1,i2,1x,i2,3(2x,1pe9.3),2(1x,1pe10.3),(2x,1pe9.3),2(1x,1pe10.3))') &
-             is,int(z(is)),dens(is),temp(is),mass(is),dlnndr(is),dlntdr(is),nu(is)
+        rhoa = sqrt(temp(is)*mass(is))/abs(z(is))
+        write(io,'(t1,i2,1x,i2,3(2x,1pe9.3),2(1x,1pe10.3),(2x,1pe9.3),3(1x,1pe10.3))') &
+             is,int(z(is)),dens(is),temp(is),mass(is),dlnndr(is),dlntdr(is),nu(is),rhoa
      enddo
 
      ! Profile shear (let s=curvature, k=gradient)

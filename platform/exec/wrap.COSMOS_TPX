@@ -5,6 +5,9 @@ export MPICH_GPU_SUPPORT_ENABLED=1
 
 #env 1>&2
 
+# disable "smart" Cray BLAS
+#export CRAYBLAS_LEVEL3_LEGACY=1
+
 #echo $SLURM_LOCALID
 let r4=SLURM_LOCALID/12
 let l4="$SLURM_LOCALID-($r4*12)"

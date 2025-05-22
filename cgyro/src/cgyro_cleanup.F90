@@ -13,14 +13,14 @@ subroutine cgyro_cleanup
 #define ccl_del_device(x) \
 !$omp target exit data map(release:x)
 #define ccl_del_bigdevice(x) \
-!$omp target exit data map(release:x) if (gpu_bigmem_flag == 1)
+!$omp target exit data map(release:x) if (gpu_bigmem_flag > 0)
 
 #elif defined(_OPENACC)
 
 #define ccl_del_device(x) \
 !$acc exit data delete(x)
 #define ccl_del_bigdevice(x) \
-!$acc exit data delete(x) if (gpu_bigmem_flag == 1)
+!$acc exit data delete(x) if (gpu_bigmem_flag > 0)
 
 #else
 

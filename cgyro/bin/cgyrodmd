@@ -226,55 +226,55 @@ imax = int(len(t)*tmax)
 # collect existing observables
 ovec = {}
 try:
-   y = sim.kxky_phi[0,:,:,0,:imax]+1j*sim.kxky_phi[1,:,:,0,:imax]
+   y = sim.kxky_phi[:,:,0,:imax]
    ovec['phi'],a0 = map1d(y,sim.q)
 except:
    pass
 
 try:
-   y = sim.kxky_apar[0,:,:,0,:imax]+1j*sim.kxky_apar[1,:,:,0,:imax]
+   y = sim.kxky_apar[:,:,0,:imax]
    ovec['apar'],a0 = map1d(y,sim.q)
 except:
    pass
 
 try:
-   y = sim.kxky_bpar[0,:,:,0,:imax]+1j*sim.kxky_bpar[1,:,:,0,:imax]
+   y = sim.kxky_bpar[:,:,0,:imax]
    ovec['bpar'],a0 = map1d(y,sim.q)
 except:
    pass
 
 try:
-   y = sim.kxky_n[0,:,:,0,0,:imax]+1j*sim.kxky_n[1,:,:,0,0,:imax]
+   y = sim.kxky_n[:,:,0,0,:imax]
    ovec['ni'],a0 = map1d(y,sim.q)
 except:
    pass
 
 try:
-   y = sim.kxky_n[0,:,:,-1,0,:imax]+1j*sim.kxky_n[1,:,:,-1,0,:imax]
+   y = sim.kxky_n[:,:,-1,0,:imax]
    ovec['ne'],a0 = map1d(y,sim.q)
 except:
    pass
 
 try:
-   y = sim.kxky_v[0,:,:,0,0,:imax]+1j*sim.kxky_v[1,:,:,0,0,:imax]
+   y = sim.kxky_v[:,:,0,0,:imax]
    ovec['vi'],a0 = map1d(y,sim.q)
 except:
    pass
 
 try:
-   y = sim.kxky_v[0,:,:,-1,0,:imax]+1j*sim.kxky_v[1,:,:,-1,0,:imax]
+   y = sim.kxky_v[:,:,-1,0,:imax]
    ovec['ve'],a0 = map1d(y,sim.q)
 except:
    pass
 
 try:
-   y = sim.kxky_e[0,:,:,0,0,:imax]+1j*sim.kxky_e[1,:,:,0,0,:imax]
+   y = sim.kxky_e[:,:,0,0,:imax]
    ovec['ei'],a0 = map1d(y,sim.q)
 except:
    pass
 
 try:
-   y = sim.kxky_e[0,:,:,-1,0,:imax]+1j*sim.kxky_e[1,:,:,-1,0,:imax]
+   y = sim.kxky_e[:,:,-1,0,:imax]
    ovec['ee'],a0 = map1d(y,sim.q)
 except:
    pass

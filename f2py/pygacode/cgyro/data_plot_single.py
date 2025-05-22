@@ -195,7 +195,8 @@ if doplot:
             data = np.column_stack((x,y1))
          else:
             data = np.column_stack((x,y1,y2))
-         np.savetxt(outfile,data,fmt='%.8e',header=head)
+     
+         np.savetxt(outfile,data,fmt='%+.8e',header=head)
          print('INFO: (data_plot_single) Created '+outfile)
    else:
       plt.savefig(outfile)

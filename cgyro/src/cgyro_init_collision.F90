@@ -476,6 +476,7 @@ subroutine cgyro_init_collision
   cmat_diff_global_loc = 0.0
   cmat32_diff_global_loc = 0.0
 
+#ifndef DISABLE_CMAT_INIT_OMP
 !$omp  parallel do collapse(2) default(none) &
 !$omp& shared(nc_cl1,nc_cl2,nt1,nt2,nv,delta_t,n_species,rho,is_ele,n_field,n_energy,n_xi) &
 !$omp& shared(collision_kperp,collision_field_model,explicit_trap_flag) &
@@ -497,6 +498,7 @@ subroutine cgyro_init_collision
 !$omp& shared(cmat,cmat_fp32,cmat_stripes,cmat_e1) &
 !$omp& reduction(+:cmat_diff_global_loc,cmat32_diff_global_loc) &
 !$omp& reduction(+:cmap_fp32_error_abs_cnt_loc,cmap_fp32_error_rel_cnt_loc)
+#endif
   do itor=nt1,nt2
      do ic=nc_cl1,nc_cl2
 
@@ -827,9 +829,9 @@ subroutine cgyro_init_collision
   if (collision_precision_mode == 1) then
 #if defined(OMPGPU)
      ! no async for OMPGPU for now
-!$omp target enter data map(to:cmat_fp32,cmat_stripes,cmat_e1) if (gpu_bigmem_flag == 1)
+!$omp target enter data map(to:cmat_fp32,cmat_stripes,cmat_e1) if (gpu_bigmem_flag > 0)
 #elif defined(_OPENACC)
-!$acc enter data copyin(cmat_fp32,cmat_stripes,cmat_e1) async if (gpu_bigmem_flag == 1)
+!$acc enter data copyin(cmat_fp32,cmat_stripes,cmat_e1) async if (gpu_bigmem_flag > 0)
 #endif
      call MPI_ALLREDUCE(cmap_fp32_error_abs_cnt_loc,&
           cmap_fp32_error_abs_cnt,&
@@ -900,15 +902,15 @@ subroutine cgyro_init_collision
 #endif
   else if (collision_precision_mode == 32) then
 #if defined(OMPGPU)
-!$omp target enter data map(to:cmat_fp32) if (gpu_bigmem_flag == 1)
+!$omp target enter data map(to:cmat_fp32) if (gpu_bigmem_flag > 0)
 #elif defined(_OPENACC)
-!$acc enter data copyin(cmat_fp32) if (gpu_bigmem_flag == 1)
+!$acc enter data copyin(cmat_fp32) if (gpu_bigmem_flag > 0)
 #endif
   else
 #if defined(OMPGPU)
-!$omp target enter data map(to:cmat) if (gpu_bigmem_flag == 1)
+!$omp target enter data map(to:cmat) if (gpu_bigmem_flag > 0)
 #elif defined(_OPENACC)
-!$acc enter data copyin(cmat) if (gpu_bigmem_flag == 1)
+!$acc enter data copyin(cmat) if (gpu_bigmem_flag > 0)
 #endif
   endif
 
