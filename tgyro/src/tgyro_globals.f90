@@ -155,6 +155,8 @@ module tgyro_globals
   real, dimension(:), allocatable :: dlnnedr
   real, dimension(:,:), allocatable :: ni
   real, dimension(:,:), allocatable :: dlnnidr
+  real, dimension(:), allocatable :: nf
+  real, dimension(:), allocatable :: nf_p
 
   ! Rotation parameters
   real, dimension(:), allocatable :: w0
@@ -166,6 +168,7 @@ module tgyro_globals
   real, dimension(:), allocatable :: vpol_p 
   real, dimension(:,:), allocatable :: v_pol 
   real :: w0_norm
+  real, dimension(:), allocatable :: rho_p 
 
   real, dimension(:), allocatable :: pr
   real, dimension(:), allocatable :: ptot
@@ -180,6 +183,9 @@ module tgyro_globals
   real, dimension(:), allocatable :: v_i
   real, dimension(:), allocatable :: rho_s
   real, dimension(:), allocatable :: rho_i
+  real, dimension(:), allocatable :: bpol
+  real, dimension(:), allocatable :: bpol_p
+  real, dimension(:), allocatable :: bpol_p2
 
   real, dimension(:), allocatable :: rho
   real, dimension(:), allocatable :: polflux
@@ -210,6 +216,7 @@ module tgyro_globals
   
   real, dimension(:), allocatable :: b_ref
   real, dimension(:), allocatable :: b_unit
+  real, dimension(:), allocatable :: b_unit_p
   real, dimension(:), allocatable :: volp
   real, dimension(:), allocatable :: vol
   real, dimension(:), allocatable :: ave_grad_r

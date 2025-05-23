@@ -78,6 +78,8 @@ subroutine tgyro_allocate_globals
   allocate(dlnnedr(n_r))
   allocate(ni(loc_n_ion,n_r))
   allocate(dlnnidr(loc_n_ion,n_r))
+  allocate(nf(n_r))
+  allocate(nf_p(n_r))
 
   ! Rotation quantities
   allocate(w0(n_r))
@@ -88,6 +90,9 @@ subroutine tgyro_allocate_globals
   allocate(vtor_p(n_r))
   allocate(vpol_p(n_r))
   allocate(v_pol(loc_n_ion,n_r))
+  
+  ! drho/dr
+  allocate(rho_p(n_r))
 
   allocate(pr(n_r))
   allocate(ptot(n_r))
@@ -102,6 +107,9 @@ subroutine tgyro_allocate_globals
   allocate(v_i(n_r))
   allocate(er(n_r))
   allocate(f_rot(n_r))
+  allocate(bpol(n_r))
+  allocate(bpol_p(n_r))
+  allocate(bpol_p2(n_r))
 
   allocate(rho(n_r))
   allocate(polflux(n_r))
@@ -132,6 +140,7 @@ subroutine tgyro_allocate_globals
 
   allocate(b_ref(n_r))
   allocate(b_unit(n_r))
+  allocate(b_unit_p(n_r))
   allocate(volp(n_r))
   allocate(vol(n_r))
   allocate(ave_grad_r(n_r))

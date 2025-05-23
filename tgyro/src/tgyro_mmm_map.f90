@@ -3,7 +3,7 @@
 ! series turbulent model.
 !/***************************************************************
 MODULE tgyro_mmm_mod
-  use modmmm, only : MMM_NCH
+  use mmm_main, only : MMM_NCH, MMM_NFREQ
   implicit none
 
   integer, parameter, private :: r8 = selected_real_kind(8) 
@@ -23,21 +23,26 @@ MODULE tgyro_mmm_mod
   real(r8)   :: mmm_vgx_nx      !Impurity particle
   real(r8)   :: mmm_vgx_phi     !Toroidal momentum
   ! 
-  real(r8), dimension(4,1) :: mmm_gamma_w20
-  real(r8), dimension(4,1) :: mmm_omega_w20
+  real(r8), dimension(MMM_NFREQ,1) :: mmm_gamma_w20
+  real(r8), dimension(MMM_NFREQ,1) :: mmm_omega_w20
+  real(r8), dimension(MMM_NFREQ,1)   :: mmm_kyrhosw20
   real(r8), dimension(1)   :: mmm_gamma_drbm
   real(r8), dimension(1)   :: mmm_omega_drbm
+  real(r8), dimension(1)   :: mmm_kyrhosdbm
   real(r8), dimension(1)   :: mmm_gamma_mtm
   real(r8), dimension(1)   :: mmm_omega_mtm
   real(r8), dimension(1)   :: mmm_kyrhosmtm
+  real(r8), dimension(1)   :: mmm_gamma_etg
+  real(r8), dimension(1)   :: mmm_omega_etg
+  real(r8), dimension(1)   :: mmm_kyrhosetg
 
   real(r8), dimension(1)   :: mmm_chii_w20
   real(r8), dimension(1)   :: mmm_chie_w20
-  real(r8), dimension(1)   :: mmm_chini_w20
+  real(r8), dimension(1)   :: mmm_dne_w20
 
   real(r8), dimension(1)   :: mmm_chii_drbm
   real(r8), dimension(1)   :: mmm_chie_drbm
-  real(r8), dimension(1)   :: mmm_chini_drbm
+  real(r8), dimension(1)   :: mmm_dne_drbm
 
   real(r8), dimension(1)   :: mmm_chie_mtm
   real(r8), dimension(1)   :: mmm_chie_etg
@@ -50,7 +55,7 @@ MODULE tgyro_mmm_mod
   !\
   ! private variables
   !/
-  real(r8), private :: rmaj_exp
+  real(r8), private :: rmaj_exp, amin_exp
   real(r8), dimension(1), private :: rmajor_exp
   real(r8), dimension(1), private :: rminor_exp
   real(r8), dimension(1), private :: elong_exp
@@ -78,12 +83,17 @@ MODULE tgyro_mmm_mod
   real(r8), dimension(1), private :: gradti_exp
   real(r8), dimension(1), private :: gradq_exp
   real(r8), dimension(1), private :: gradelg_exp
+  real(r8), dimension(1), private :: gradbu_exp
+  real(r8), dimension(1), private :: drhodr_exp
   real(r8), dimension(1), private :: rlne_exp
   real(r8), dimension(1), private :: rlnh_exp
   real(r8), dimension(1), private :: rlnt_exp
   real(r8), dimension(1), private :: rlnz_exp
+  real(r8), dimension(1), private :: rlnf_exp
   real(r8), dimension(1), private :: rlte_exp
   real(r8), dimension(1), private :: rlti_exp
+  real(r8), dimension(1), private :: gxi_exp
+ 
   real(r8), dimension(1), private :: shear_exp
   real(r8), dimension(1), private :: gamma_e_exp
 
@@ -117,8 +127,8 @@ CONTAINS
   ! load data for mmm mode
   !/
   SUBROUTINE tgyro_mmm_map(ier)
-    use modmmm, only : KW20, KDBM, KMTM, KETG, MAXNOPT, &
-        MMM_NMODE, set_mmm_switches, KETGM
+    use mmm_main, only : MMM_KW20, MMM_KDBM, MMM_KMTM, MMM_KETGM, MMM_NOPT, &
+        MMM_NMODE, set_mmm_switches
     use tgyro_globals
     implicit none
 
@@ -135,10 +145,10 @@ CONTAINS
     logical, save :: initialized = .false.
     real(r8), parameter :: BADREAL = -1E10_r8
     integer, parameter  :: BADINT = -1000000
-    real(r8), dimension(MAXNOPT) :: &
+    real(r8), dimension(MMM_NOPT) :: &
        cW20, cDBM, cETG, cMTM ! To be passed to cmmm
     character(len=9) :: mmm_namelist = 'input.mmm'
-    integer, dimension(MAXNOPT) :: &
+    integer, dimension(MMM_NOPT) :: &
        lW20, lDBM, lETG, lMTM ! To be passed to lmmm
 
     NAMELIST /mmm_input/                         &
@@ -148,6 +158,7 @@ CONTAINS
     ! allocate memory
 
     rmajor_exp(1) = 1d-2 * r_maj(i_r)       ! [m]
+    amin_exp = 1d-2 * r(n_r)                ! [m]
     if (r(i_r).eq.0d0) then
       rminor_exp(1) = epslon
     else  
@@ -180,11 +191,7 @@ CONTAINS
         nh_exp(1) = nh_exp(1) + ni(i,i_r)
         mh_exp(1) = mh_exp(1) + mi(i)*ni(i,i_r)
       endif  
-      if (therm_flag(i).eq.1) then
-        nt_exp(1) = nt_exp(1) + ni(i,i_r)
-      else  
-        nf_exp(1) = nf_exp(1) + ni(i,i_r)
-      endif
+      if (therm_flag(i).eq.1) nt_exp(1) = nt_exp(1) + ni(i,i_r)
       if (zi_vec(i)>2.5) then
         nz_exp(1) = nz_exp(1) + ni(i,i_r)
         zz_exp(1) = zz_exp(1) + zi_vec(i)*ni(i,i_r)
@@ -200,7 +207,7 @@ CONTAINS
     ni_exp(1) = 1d6*ni_exp(1)                  ! [m^-3]
     nh_exp(1) = 1d6*nh_exp(1)                  ! [m^-3]
     nt_exp(1) = 1d6*nt_exp(1)                  ! [m^-3]
-    nf_exp(1) = 1d6*nf_exp(1)                  ! [m^-3]
+    nf_exp(1) = 1d6*nf(i_r)                  ! [m^-3]
     nz_exp(1) = 1d6*nz_exp(1)                  ! [m^-3]
     ! zeff
     zeff_exp(1) = z_eff(i_r)
@@ -216,6 +223,7 @@ CONTAINS
     ! density gradients
     rlne_exp(1) = 1d2*rmajor_exp(1)*dlnnedr(i_r)
     rlte_exp(1) = 1d2*rmajor_exp(1)*dlntedr(i_r)
+    rlnf_exp(1) = 1d8*rmajor_exp(1)*nf_p(i_r)/(nf_exp(1)+epslon)
     rlti_exp(1) = 0_r8
     rlnh_exp(1) = 0_r8
     rlnt_exp(1) = 0_r8
@@ -233,13 +241,13 @@ CONTAINS
         rlnz_exp(1) = rlnz_exp(1) + dlnnidr(i,i_r)*ni(i,i_r)*1d6
       endif  
     enddo
-    rlti_exp(1) = 1d2*rmajor_exp(1)*rlti_exp(1)/(ni_exp(1)+epslon)/(ti_exp(i_r)+epslon)
+    rlti_exp(1) = 1d2*rmajor_exp(1)*rlti_exp(1)/(ni_exp(1)+epslon)/(ti_exp(1)+epslon)
     rlnh_exp(1) = 1d2*rmajor_exp(1)*rlnh_exp(1)/(nh_exp(1)+epslon)
     rlnt_exp(1) = 1d2*rmajor_exp(1)*rlnt_exp(1)/(nt_exp(1)+epslon)
     rlnz_exp(1) = 1d2*rmajor_exp(1)*rlnz_exp(1)/(nz_exp(1)+epslon)
     shear_exp(1) = rmajor_exp(1)*s(i_r)/rminor_exp(1)
     gradelg_exp(1) = rmajor_exp(1)*s_kappa(i_r)/rminor_exp(1)
-
+    gradbu_exp(1) = 1.0d2*b_unit_p(i_r)*rmajor_exp(1)/(b_unit(i_r)+epslon)
     !\
     ! velocities and their derivatives
     !/
@@ -252,8 +260,11 @@ CONTAINS
     enddo  
     vpol_exp(1) = vpol_exp(1)*1d-2/ni_exp(1)     ! m/s
     gradvtor_exp(1) = -1.0d2*vtor_p(i_r)*rmajor_exp(1)/(vtor_exp(1)+epslon)
-    gradvpol_exp(1) = -1.0d2*vpol_p(i_r)*rmajor_exp(1)/(vtor_exp(1)+epslon)
+    gradvpol_exp(1) = -1.0d2*vpol_p(i_r)*rmajor_exp(1)/(vpol_exp(1)+epslon)
     gradvpar_exp(1) = -1.0d2*vtor_p(i_r)*rmajor_exp(1)/(vpar_exp(1)+epslon)
+    !
+    drhodr_exp(1) = 1.0d-2*rho_p(i_r) ! 1/m
+    
     !\ 
     ! ExB flow shear
     !/ 
@@ -271,8 +282,8 @@ CONTAINS
       endif
       
       if (.not.(allocated(cmodel))) allocate(cmodel(MMM_NMODE))
-      if (.not.(allocated(cmmm07))) allocate(cmmm07(MAXNOPT, MMM_NMODE))
-      if (.not.(allocated(lmmm07))) allocate(lmmm07(MAXNOPT, MMM_NMODE))
+      if (.not.(allocated(cmmm07))) allocate(cmmm07(MMM_NOPT, MMM_NMODE))
+      if (.not.(allocated(lmmm07))) allocate(lmmm07(MMM_NOPT, MMM_NMODE))
 
       lprint = 0
       cmodel = BADREAL
@@ -282,25 +293,25 @@ CONTAINS
       Read( hfIn, NML=mmm_input )
       Close( hfIn )
       !.. Fill parameter arrays with default values
-      Call set_mmm_switches( cmmm = cmmm07, lmmm = lmmm07 )
+      Call set_mmm_switches( rswitch = cmmm07, iswitch = lmmm07  )
 
       !.. Assign user specified parameters
-      do i=1, MAXNOPT
-        if ( abs( cW20(i) - BADREAL ) > epslon ) cmmm07(i,KW20)=cW20(i)
-        if ( abs( cDBM(i) - BADREAL ) > epslon ) cmmm07(i,KDBM)=cDBM(i)
-        if ( abs( cETG(i) - BADREAL ) > epslon ) cmmm07(i,KETG)=cETG(i)
-        if ( abs( cMTM(i) - BADREAL ) > epslon ) cmmm07(i,KMTM)=cMTM(i)
-        if ( lW20(i) /= BADINT ) lmmm07(i,KW20)=lW20(i)
-        if ( lDBM(i) /= BADINT ) lmmm07(i,KDBM)=lDBM(i)
-        if ( lETG(i) /= BADINT ) lmmm07(i,KETG)=lETG(i)
-        if ( lMTM(i) /= BADINT ) lmmm07(i,KMTM)=lMTM(i)
+      do i=1, MMM_NOPT
+        if ( abs( cW20(i) - BADREAL ) > epslon ) cmmm07(i,MMM_KW20)=cW20(i)
+        if ( abs( cDBM(i) - BADREAL ) > epslon ) cmmm07(i,MMM_KDBM)=cDBM(i)
+        if ( abs( cETG(i) - BADREAL ) > epslon ) cmmm07(i,MMM_KETGM)=cETG(i)
+        if ( abs( cMTM(i) - BADREAL ) > epslon ) cmmm07(i,MMM_KMTM)=cMTM(i)
+        if ( lW20(i) /= BADINT ) lmmm07(i,MMM_KW20)=lW20(i)
+        if ( lDBM(i) /= BADINT ) lmmm07(i,MMM_KDBM)=lDBM(i)
+        if ( lETG(i) /= BADINT ) lmmm07(i,MMM_KETGM)=lETG(i)
+        if ( lMTM(i) /= BADINT ) lmmm07(i,MMM_KMTM)=lMTM(i)
       enddo
 
       do i=1, MMM_NMODE 
         if (cmodel(i) == BADINT ) cmodel(i) = 1
       enddo
       ! Disable the new ETG model for now
-      cmodel(KETGM) = 0d0
+      cmodel(MMM_KETGM) = 0d0
 
       initialized = .true.
     endif
@@ -312,7 +323,7 @@ CONTAINS
   ! run mmm model
   !/
   SUBROUTINE tgyro_mmm_run(ier)
-    use modmmm
+    use mmm_main
     use tgyro_globals
     implicit none
 
@@ -327,9 +338,7 @@ CONTAINS
          initial = 0, &! = 0 the first time this routine is called
          inprout
 
-    real(r8), dimension(1)   :: zthiig,zthdig,ztheig
-    real(r8), dimension(1)   :: zthzig,zthtig,zthttig
-    real(r8), dimension(6,1) :: zvelthi
+    real(r8), dimension(MMM_NCH,1) :: zvelthi, zvflux, zvdiff
 
     ier = 0
 
@@ -337,89 +346,98 @@ CONTAINS
 
     ! calculate the characteristic length
 
-    if (lmmm07(1,KDBM) /= 0 ) cmmm07(1,KDBM) = 0.0_r8 ! Disable ExB for DRIBM
-    call mmm(                             &
-         rmin     = rminor_exp,           &
-         rmaj     = rmajor_exp,           &
-         rmaj0    = rmaj_exp,             &
-         elong    = elong_exp,            &
-         ne       = ne_exp,               &
-         nh       = nh_exp,               &
-         nz       = nz_exp,               &
-         nf       = nf_exp,               &
-         zeff     = zeff_exp,             &
-         te       = te_exp,               &
-         ti       = ti_exp,               &
-         q        = q_exp,                &
-         btor     = btor_exp,             &
-         zimp     = zz_exp,               &
-         aimp     = mz_exp,               &
-         ahyd     = mh_exp,               &
-         aimass   = mi_exp,               &
-         wexbs    = gamma_e_exp,          &
-         gne      = rlne_exp,             &
-         gni      = rlnt_exp,             &
-         gnh      = rlnh_exp,             &
-         gnz      = rlnz_exp,             &
-         gte      = rlte_exp,             &
-         gti      = rlti_exp,             &
-         gq       = shear_exp,            &
-         vtor     = vtor_exp,             &
-         vpol     = vpol_exp,             &
-         vpar     = vpar_exp,             &
-         gvtor    = gradvtor_exp,         &
-         gvpol    = gradvpol_exp,         &
-         gvpar    = gradvpar_exp,         &
-         gelong   = gradelg_exp,          &
-         ! etanc    = etanc_exp,            &
-         xti      = zthiig,               &
-         xdi      = zthdig,               &
-         xte      = ztheig,               &
-         xdz      = zthzig,               &
-         xvt      = zthtig,               &
-         xvp      = zthttig,              &
-         xtiW20   = mmm_chii_w20,         &
-         xdiW20   = mmm_chini_w20,        &
-         xteW20   = mmm_chie_w20,         &
-         xtiDBM   = mmm_chii_drbm,        &
-         xdiDBM   = mmm_chini_drbm,       &
-         xteDBM   = mmm_chie_drbm,        &
-         xteMTM   = mmm_chie_mtm,         &
-         xteETG   = mmm_chie_etg,         &
-         gammaW20 = mmm_gamma_w20(1:4,:), &
-         omegaW20 = mmm_omega_w20(1:4,:), &
-         gammaDBM = mmm_gamma_drbm,       &
-         omegaDBM = mmm_omega_drbm,       &
-         gammaMTM = mmm_gamma_mtm,        &
-         omegaMTM = mmm_omega_mtm,        &
-         kyrhosMTM = mmm_kyrhosmtm,       &
-         dbsqprf  = mmm_dbsqprf,          &
-         vconv    = mmm_velthi(1:6,:),    &
-         vflux    = mmm_flux(1:6,:),      &
-         npoints  = 1,                    &
-         lprint   = iprint,               &
-         nprout   = inprout,              &
-         nerr     = ier,                  &
-         cmodel   = cmodel,               &
-         cswitch  = cmmm07,               &
-         lswitch  = lmmm07)
+    if (lmmm07(1,MMM_KDBM) /= 0 ) cmmm07(1,MMM_KDBM) = 0.0_r8 ! Disable ExB for DRIBM
+        CALL mmm( &
+            npoints=1, &              ! Input Points
+            rswitch=cmmm07, &              ! Input Switches
+            iswitch=lmmm07, &
+            cmodel=cmodel, &  
+            z_amin=amin_exp, &         ! Input Variables (Scalars)
+            z_rmaj0=rmaj_exp, &  
+            z_rmin=rminor_exp, &                  ! Input Variables (Arrays)
+            z_rmaj=rmajor_exp, &
+            z_ah=mh_exp, &
+            z_az=mz_exp, &
+            z_bpol=bpol, &
+            z_btor=btor_exp, &
+            z_bu=1d-4*b_unit, &        ! Gauss to T
+            z_d2bp=bpol_p2, &          ! Gauss/cm^2 -> T/m^2
+            z_dbp=1d-2*bpol_p, &     ! Gauss/cm -> T/m
+            z_elong=elong_exp, &
+            z_gbu=gradbu_exp, &
+            z_gne=rlne_exp, &
+            z_gnh=rlnh_exp, &
+            z_gnz=rlnz_exp, &
+            z_gq=shear_exp, &
+            z_gte=rlte_exp, &
+            z_gti=rlti_exp, &
+            z_gvpar=gradvpar_exp, &
+            z_gvpol=gradvpol_exp, &
+            z_gvtor=gradvtor_exp, &
+            z_gxi=drhodr_exp, &
+            z_ne=ne_exp, &  
+            z_nf=nf_exp, &
+            z_nh=nh_exp, &
+            z_nz=nz_exp, &
+            z_q=q_exp, &
+            z_te=te_exp, &
+            z_ti=ti_exp, &
+            z_vpar=vpar_exp, &
+            z_vpol=vpol_exp, &
+            z_vtor=vtor_exp, &
+            z_wexb=gamma_e_exp, &
+            z_zeff=zeff_exp, &
+            z_zz=zz_exp, &           
+            !   z_etanc=etanc, &  <--  Optional 
+            z_gelong=gradelg_exp, &
+            z_gnf=rlnf_exp, &
+            !z_gtfpa=gtfpa, &  <-- Optional: Normalized fast ion temperature gradient parallel
+            !z_gtfpp=gtfpp, & <-- Optional: Normalized fast ion temperature gradient perpendicular
+            !z_tfpa=tfpa, &     <-- Optional: Fast ion temperature gradient parallel
+            !z_tfpp=tfpp, &    <-- Optional: Fast on temperature gradient perpendicular
+            diff=zvdiff, &                    ! Output Variables
+            vconv=zvelthi, &
+            flux=zvflux, &
+            xtiW20   = mmm_chii_w20, &                
+            xteW20   = mmm_chie_w20,  & 
+            xneW20   = mmm_dne_w20, &
+            xtiDBM=mmm_chii_drbm, &
+            xteDBM=mmm_chie_drbm, &
+            xneDBM=mmm_dne_drbm, &
+            xteMTM=mmm_chie_mtm, &
+            xteETGM=mmm_chie_etg, &   
+            kyrhosMTM=mmm_kyrhosmtm, &
+            gammaW20=mmm_gamma_w20, &
+            omegaW20=mmm_omega_w20, &  
+            gammaDBM=mmm_gamma_drbm, &
+            omegaDBM=mmm_omega_drbm, &
+            gammaMTM=mmm_gamma_mtm, &
+            omegaMTM=mmm_omega_mtm, &
+            gammaETGM=mmm_gamma_mtm, &
+            omegaETGM=mmm_omega_etg, &                              
+            dbsqMTM=mmm_dbsqprf, &
+            kyrhosDBM=mmm_kyrhosdbm, &           
+            kyrhosW20=mmm_kyrhosw20, &
+            kyrhosETGM=mmm_kyrhosetg, &
+            nerr     = ier)
 
     if ( ier /= 0 ) then 
       print *, 'Error in mmm subroutine!'
       return
     endif
-    mmm_chi_i     = zthiig(1)*1d4      ! Ion thermal diffusivity
-    mmm_chi_e     = ztheig(1)*1d4      ! Electron thermal diffusivity
-    mmm_chi_ne    = zthdig(1)*1d4      ! Electron particle diffusivity
-    mmm_chi_nx    = zthzig(1)*1d4      ! Impurity ion diffusivity
-    mmm_chi_phi   = zthtig(1)*1d4      ! Toroidal momentum diffusivity
-    mmm_chi_theta = zthttig(1)*1d4     ! Poloidal momentum diffusivity
+    !
+    mmm_chi_i     = zvdiff(MMM_KTI,1)*1d4  !Ion thermal diffusivity
+    mmm_chi_e     = zvdiff(MMM_KTE,1)*1d4      ! Electron thermal diffusivity
+    mmm_chi_ne    = zvdiff(MMM_KNE,1)*1d4      ! Electron particle diffusivity
+    mmm_chi_nx    =  zvdiff(MMM_KNZ,1)*1d4      ! Impurity ion diffusivity
+    mmm_chi_phi   = zvdiff(MMM_KVT,1)*1d4      ! Toroidal momentum diffusivity
+    mmm_chi_theta = zvdiff(MMM_KVP,1)*1d4     ! Poloidal momentum diffusivity
 
-    mmm_vheat_i = zvelthi(3,1)*1d2     ! Electron thermal
-    mmm_vheat_e = zvelthi(1,1)*1d2     ! Ion thermal
-    mmm_vgx_ne  = zvelthi(2,1)*1d2     ! Particle
-    mmm_vgx_nx  = zvelthi(4,1)*1d2     ! Impurity particle
-    mmm_vgx_phi = zvelthi(5,1)*1d2     ! Toroidal momentum
+    mmm_vheat_i = zvelthi(MMM_KTE,1)*1d2     ! Electron thermal
+    mmm_vheat_e = zvelthi(MMM_KTI,1)*1d2     ! Ion thermal
+    mmm_vgx_ne  = zvelthi(MMM_KNE,1)*1d2     ! Particle
+    mmm_vgx_nx  = zvelthi(MMM_KNZ,1)*1d2     ! Impurity particle
+    mmm_vgx_phi = zvelthi(MMM_KVP,1)*1d2     ! Toroidal momentum
 !     print *, 'mmm', i_r, mmm_chi_e*1d-4, mmm_chi_i*1d-4
 !     print *, 'rmin     =',  rminor_exp
 !     print *, 'rmaj     =',  rmajor_exp

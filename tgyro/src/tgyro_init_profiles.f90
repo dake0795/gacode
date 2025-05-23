@@ -205,7 +205,12 @@ subroutine tgyro_init_profiles
 
   ! Convert fpol to Gauss-cm from T-m (1 T-m = 10^6 G-cm)
   call cub_spline(expro_rmin(:)/r_min,expro_fpol(:)*1e6,n_exp,r,fpol,n_r)
-
+  
+  ! Convert Bpol to Gauss from T
+  call cub_spline(expro_rmin(:)/r_min,expro_bp0(:)*1e4,n_exp,r,bpol,n_r)
+  call bound_deriv(bpol_p, bpol, r, n_r)
+  call bound_deriv(bpol_p2, bpol_p, r, n_r)
+  
   ! Convert V and dV/dr from m^3 to cm^3
   call cub_spline(expro_rmin(:)/r_min,expro_vol(:)*1e6,n_exp,r,vol,n_r)
   call cub_spline(expro_rmin(:)/r_min,expro_volp(:)*1e4,n_exp,r,volp,n_r)
@@ -214,6 +219,8 @@ subroutine tgyro_init_profiles
 
   ! Convert B to Gauss (from T):
   call cub_spline(expro_rmin(:)/r_min,1e4*expro_bunit(:),n_exp,r,b_unit,n_r)
+  ! b_unit_p = d(bunit)/dr 
+  call bound_deriv(b_unit_p, b_unit, r, n_r)
 
   ! Convert T to eV (from keV) and length to cm (from m):
   call cub_spline(expro_rmin(:)/r_min,1e3*expro_te(:),n_exp,r,te,n_r)
@@ -318,7 +325,23 @@ subroutine tgyro_init_profiles
   call bound_deriv(vtor_p, w0*r_maj, r, n_r)
   ! vpol_p = d(vpol)/dr 
   call bound_deriv(vpol_p, v_pol, r, n_r)
+  !------------------------------------------------------------------------------------------
 
+  !------------------------------------------------------------------------------------------
+  ! Fast ion density and its derivative
+  !
+  nf = 0d0
+  do i_ion = 1, loc_n_ion
+    if (therm_flag(i).ne.1) then
+      do i_r = 1, n_r
+        nf(i_r) = nf(i_r) + ni(i_ion,i_r)
+      enddo
+    endif
+  enddo
+  call bound_deriv(nf_p, rho, r, n_r)
+  ! 
+  ! drho / dr
+  call bound_deriv(rho_p, rho, r, n_r)
   !------------------------------------------------------------------------------------------
 
   !------------------------------------------------------------------------------------------
