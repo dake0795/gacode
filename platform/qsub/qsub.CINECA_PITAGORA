@@ -1,0 +1,18 @@
+#!/bin/bash
+
+bfile=$SIMDIR/batch.src
+# Copy appropriate commands to batch directory:
+
+echo "#!/bin/bash" > $bfile
+echo "#SBATCH -J $LOCDIR" >> $bfile
+echo "#SBATCH -A ${REPO}" >> $bfile
+echo "#SBATCH -N $nodes_requested" >> $bfile
+echo "#SBATCH -n $nmpi" >> $bfile
+echo "#SBATCH -o $SIMDIR/batch.out " >> $bfile
+echo "#SBATCH -e $SIMDIR/batch.err" >> $bfile
+echo "#SBATCH -p $QUEUE" >> $bfile
+echo "#SBATCH -t $WALLTIME" >> $bfile
+echo "#SBATCH --export=ALL" >> $bfile
+echo "env" >> $bfile
+echo "$CODE -e $LOCDIR -n $nmpi -nomp $nomp -numa $numa -mpinuma $mpinuma -p $SIMROOT" >> $bfile
+

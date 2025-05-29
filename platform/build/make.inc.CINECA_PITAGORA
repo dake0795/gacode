@@ -1,0 +1,41 @@
+#---------------------------------------------------
+# PITAGORA [Cineca component]
+#
+# SYSTEM INFO:
+# - 64 x 2 x Intel Emerald Rapids 6548Y 32c 2.5 GHz
+# - 4 x NVIDIA H100 SXM 80GB HBM2e
+#   
+#---------------------------------------------------
+$(info Compiling for PITAGORA NVIDIA H100)
+
+#  FIXED Hardware parameters
+
+IDENTITY="CINECA Pitagora"
+CORES_PER_NODE=128
+NUMAS_PER_NODE=4
+
+# Compilers and flags
+
+FC     = mpifort -module ${GACODE_ROOT}/modules -I ${GACODE_ROOT}/modules -Mpreprocess -DUSE_INLINE -Mdefaultunit
+F77    = ${FC}
+
+FACC   =-acc -gpu all -Minfo=accel -cudalib=cufft
+
+FOMP   =-mp -Mstack_arrays
+FMATH  =-r8 
+FOPT   =-fast -fastsse -Mvect
+FDEBUG =-g -Kieee -Ktrap=fp,divz -Mbounds -Mchkptr -Mchkstk -traceback -Minform=inform
+
+
+# System math libraries
+
+LMATH = -llapack -lblas
+
+# NetCDF
+NETCDF  = -L${NETCDF_C_LIB} -lnetcdf -L${NETCDF_FORTRAN_LIB} -lnetcdff
+NETCDF_INC = ${NETCDF_FORTRAN_INCLUDE}
+
+# Archive 
+ARCH = ar cr
+
+
