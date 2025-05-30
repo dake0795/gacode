@@ -23,6 +23,7 @@ if [ ${ntasks_per_gpu} -lt 1 ]; then
     let ntasks_per_gpu=1
 fi
 
+
 export MPICH_MAX_THREAD_SAFETY=funneled
 export OMP_NUM_THREADS=$nomp
 export OMP_STACKSIZE=400M
@@ -30,8 +31,9 @@ export MPICH_GPU_SUPPORT_ENABLED=1
 export NTASKS_PER_GPU=$ntasks_per_gpu
 export NGPU=$ngpu
 export NUMA=$numa
+export OMPI_MCA_coll_hcoll_enable=0
 
 export SLURM_CPU_BIND="cores"
 
-echo "> srun --cpu-bind=cores -n $nmpi -c $nomp $GACODE_ROOT/platform/exec/wrap.${GACODE_PLATFORM} $exec"
-srun --cpu-bind=cores -n $nmpi -c $nomp $GACODE_ROOT/platform/exec/wrap.${GACODE_PLATFORM} $exec
+echo "> srun -n $nmpi -c $nomp $GACODE_ROOT/platform/exec/wrap.${GACODE_PLATFORM} $exec"
+srun -n $nmpi -c $nomp $GACODE_ROOT/platform/exec/wrap.${GACODE_PLATFORM} $exec

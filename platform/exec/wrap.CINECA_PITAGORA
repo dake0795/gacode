@@ -10,10 +10,18 @@ let l4="$SLURM_LOCALID-($r4*4)"
 #echo "$SLURM_PROCID `nvidia-smi -L` $SLURM_PROCID"
 #echo "$SLURM_PROCID `nvidia-smi topo -m` $SLURM_PROCID"
 
-let ACC_DEVICE_NUM=${l4}
-export ACC_DEVICE_NUM
+DEVICE_NUM=(0 1 2 3)
+CPUS=(0-31 0-31 32-63 32-63)
 
-echo "`uname -n` $SLURM_PROCID $SLURM_LOCALID $ACC_DEVICE_NUM `taskset -pc $$`"
+NICS=(mlx5_0:1 mlx5_1:1 mlx5_4:1 mlx5_5:1)
+
+CPUSET=${CPUS[$SLURM_LOCALID]}
+
+
+export ACC_DEVICE_NUM=${DEVICE_NUM[${SLURM_LOCALID}]}
+export UCX_NET_DEVICES=${NICS[${SLURM_LOCALID}]}
+
+echo "`uname -n` $SLURM_PROCID $SLURM_LOCALID $ACC_DEVICE_NUM `taskset -pc $CPUSET $$`"
 
 if [ ${NTASKS_PER_GPU} -gt 1 ]; then
     # use MPS

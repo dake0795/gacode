@@ -11,7 +11,7 @@ $(info Compiling for PITAGORA NVIDIA H100)
 #  FIXED Hardware parameters
 
 IDENTITY="CINECA Pitagora"
-CORES_PER_NODE=128
+CORES_PER_NODE=64
 NUMAS_PER_NODE=4
 
 # Compilers and flags
@@ -19,17 +19,17 @@ NUMAS_PER_NODE=4
 FC     = mpifort -module ${GACODE_ROOT}/modules -I ${GACODE_ROOT}/modules -Mpreprocess -DUSE_INLINE -Mdefaultunit
 F77    = ${FC}
 
-FACC   =-acc -gpu all -Minfo=accel -cudalib=cufft
-
+FACC   =-acc -gpu=cc90 -Minfo=accel -cudalib=cufft
 FOMP   =-mp -Mstack_arrays
 FMATH  =-r8 
-FOPT   =-fast -fastsse -Mvect
+FOPT   =-fast -Mvect=simd:256 -Mcache_align -mcpu=sapphirerapids -tp=sapphirerapids
+
 FDEBUG =-g -Kieee -Ktrap=fp,divz -Mbounds -Mchkptr -Mchkstk -traceback -Minform=inform
 
 
 # System math libraries
 
-LMATH = -llapack -lblas
+LMATH = -llapack_lp64 -lblas_lp64
 
 # NetCDF
 NETCDF  = -L${NETCDF_C_LIB} -lnetcdf -L${NETCDF_FORTRAN_LIB} -lnetcdff
