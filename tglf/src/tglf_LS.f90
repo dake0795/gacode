@@ -35,7 +35,7 @@
       INTEGER,ALLOCATABLE,DIMENSION(:) :: ipiv
       COMPLEX,ALLOCATABLE,DIMENSION(:,:) :: zmat
 !  Filter numerical instabilities
-      logical :: is_even
+      logical :: is_odd
       INTEGER :: nb_of_unstable_modes
       REAL :: total_weight, odd_weight, ratio_odd
 ! 
@@ -268,16 +268,17 @@ if(new_matrix)then
 
 
       ! ============================================================================
-      ! Filter out unphysical numerical instabilities
-      ! based on mode parity and frequency  (Najlaoui et al. PPCF 2025)
+      ! Filter out unphysical numerical instabilities based on mode parity and frequency
       ! This filter is only active when FILTER < 0
       !
       ! Logic summary:
-      !   - Check if |omega_r| > |FILTER * omega_DW|
-      !       - If not: keep the mode
-      !       - If yes:
-      !           - Keep only if Re[phi] is EVEN and omega_r is in ion diamagnetic direction
-      !           - Otherwise: remove the mode
+      !   - Estimate mode parity using Hermite basis decomposition
+      !   - If the mode is not odd --> keep it
+      !   - If the mode is odd:
+      !       - If |FILTER| <= 0.1 --> remove it systematically
+      !       - Else:
+      !           - If |omega_r| > |FILTER * omega_DW| --> remove it
+      !           - Else --> keep it
       ! ============================================================================
       if (filter_in.lt.0.0) then
         nb_of_unstable_modes = 0
@@ -289,7 +290,7 @@ if(new_matrix)then
         CALL sort_eigenvalues(nb_of_unstable_modes,jmax)
 
         do imax = 1, MIN(nb_of_unstable_modes,maxmodes)
-          is_even = .false.
+          is_odd  = .false.
 
           if (jmax(imax) > 0) then
             ! Solve the linear system to reconstruct eigenvector
@@ -319,11 +320,11 @@ if(new_matrix)then
             !     ratio_odd = sum over even j  [ Im(field_weight(j))^2 ] /
             !                 sum over all j   [ Im(field_weight(j))^2 ]
             !
-            ! If ratio_odd < 0.2, the mode is classified as "even-parity"
+            ! If ratio_odd > 0.85, the mode is classified as "odd-parity"
             ! This method is more robust than checking symmetry of phi(theta)
             ! because it uses the known parity of the basis functions directly
             !
-            ! NOTE: The threshold (0.2) can be tuned to be more or less conservative
+            ! NOTE: The threshold (0.85) can be tuned to be more or less conservative
             ! ------------------------------------------------------------------------
             ratio_odd = 0.0
             total_weight = 0.0
@@ -338,17 +339,32 @@ if(new_matrix)then
 
             if (total_weight > 0.0) then
               ratio_odd = odd_weight / total_weight
-              if (ratio_odd < 0.2) is_even = .true.
+              if (ratio_odd > 0.85) is_odd = .true.
             end if
 
             ! ------------------------------------------------------------------------
-            ! FILTERING LOGIC (Najlaoui et al. PPCF 2025)
+            ! FILTERING LOGIC
             ! ------------------------------------------------------------------------
-            if (ABS(ri(jmax(imax))) > ABS(max_freq)) then
-              ! Inside condition: keep only even-parity modes propagating in ion direction
-              if (.not.(is_even .and. ri(jmax(imax)) > 0.0)) then
-                rr(jmax(imax)) = 0.0  ! Remove mode
+            ! Logic:
+            !   - If the mode is NOT odd (even or undetermined): KEEP
+            !   - If the mode is odd:
+            !        - If |FILTER| <= 0.1 : always REMOVE odd modes
+            !        - Else:
+            !            - If |omega_r| > |FILTER * omega_DW| : REMOVE
+            !            - Else : KEEP
+            ! ------------------------------------------------------------------------
+            if (is_odd) then
+              if (ABS(filter_in) <= 0.1) then
+                rr(jmax(imax)) = 0.0
+
+              else if (ABS(ri(jmax(imax))) > ABS(max_freq)) then
+                rr(jmax(imax)) = 0.0
+
+              else
+                ! Odd parity, frequency low : keep mode
               end if
+            else
+              ! Mode not identified as odd : keep by default
             end if
           end if
         end do
