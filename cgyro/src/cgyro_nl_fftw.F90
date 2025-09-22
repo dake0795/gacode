@@ -1159,7 +1159,7 @@ subroutine cgyro_fmany32_async(nj, f_nl32)
 #else
 !$acc parallel loop gang vector independent collapse(3) async(2) &
 !$acc&  private(j,ir0,ir1,p0,p1,ix0,ix1,ix2,iy,f0,itm,itl,fx0,fx1,fy0,fy1) &
-!$acc&  present(f_nl,fxmany,fymany)
+!$acc&  present(f_nl32,fxmany,fymany)
 #endif
   do j=1,nj
      ! process two lines at a time, so we can do everything in parallel
