@@ -343,6 +343,18 @@ subroutine cgyro_check
      call cgyro_error('Invalid value for nup_alpha')
      return
   endif
+  if (hyper_flag < 0 .or. hyper_flag > 2) then
+     call cgyro_error('Invalid value for hyper_flag')
+     return
+  endif 
+  if (hyper_order < 1) then
+     call cgyro_error('Invalid value for hyper_order')
+     return
+  endif
+  if (hyper_coeff < 0.0) then
+     call cgyro_error('Invalid value for hyper_coeff')
+     return
+  endif
   !------------------------------------------------------------------------
 
   if (exch_flag == 0) then

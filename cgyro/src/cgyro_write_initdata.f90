@@ -97,6 +97,12 @@ subroutine cgyro_write_initdata
      write(io,'(t2,3(a,1x,f3.1,2x),t48,a)') &
           'C(theta):',maxval(abs(omega_stream))*maxval(vel)*maxval(xi)*delta_t/d_theta/1.6
 
+     if (hyper_flag == 1) then
+        write(io,*)
+        write(io,'(t2,a,1x,i2,3x,a,1x,1pe12.5,t48,a)') &
+             'hyper_order',hyper_order , 'hyper_coeff:',hyper_coeff , '[hyperviscosity order and coefficient]'
+     endif
+
      write(io,*) 
      write(io,21) 'r/a',rmin,'R/a',rmaj,'q',q,'zmag',zmag,'kappa',kappa   
      write(io,22) 'shift',shift,'s',s,'dzmag',dzmag,'s_kappa',s_kappa

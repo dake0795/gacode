@@ -11,6 +11,7 @@ subroutine cgyro_init_arrays
   real :: efac
   real :: u,sm,sb
   real :: fac
+  real :: k_perp_max
   integer :: ir,it,is,ie,ix
   integer :: itm,itl,itor,mytor,itf
   integer :: it_loc
@@ -399,6 +400,20 @@ subroutine cgyro_init_arrays
 !$acc enter data copyin(c_wave,thfac_itor,cderiv,uderiv)
 #endif
 
+  ! Set maximum k_perp for hyperviscosity
+  if (hyper_flag == 1) then
+     k_perp_max = 0.0
+     do itor=nt1,nt2
+        do ic=1,nc
+           ir = ir_c(ic)
+           u = sqrt((2.0*pi*(ir - px_zero + px0)/length)**2 + (k_theta_base*itor)**2)
+           k_perp_max = max(k_perp_max, u)
+        enddo
+     enddo
+  elseif (hyper_flag == 2) then
+     k_perp_max = maxval(k_perp(:,nt1:nt2))
+  endif
+
   ! Streaming coefficients (for speed optimization)
 
 !$omp parallel do collapse(3) &
@@ -451,6 +466,17 @@ subroutine cgyro_init_arrays
                 + abs(omega_cdrift_r(it,is)*xi(ix))*vel(ie) &
                 + abs(omega_rot_drift_r(it,is)) &
                 + abs(omega_rot_edrift_r(it)))
+
+           ! Perpendicular hyperviscosity (excludes zonal mode)
+           if (hyper_flag > 0 .and. itor /= 0) then
+              if (hyper_flag == 1) then
+                 u = sqrt((2.0*pi*(ir - px_zero + px0)/length)**2 + (k_theta_base*itor)**2)
+              elseif (hyper_flag == 2) then
+                 u = k_perp(ic,itor)
+              endif
+              omega_cap_h(ic, iv_loc, itor) = omega_cap_h(ic,iv_loc,itor) &
+                   - hyper_coeff * (u/k_perp_max)**(2*hyper_order)
+           endif     
              
            ! omega_star 
            carg = &

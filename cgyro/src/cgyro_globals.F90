@@ -41,6 +41,9 @@ module cgyro_globals
   integer :: nup_radial
   integer :: nup_theta
   integer :: nup_alpha
+  integer :: hyper_flag
+  integer :: hyper_order
+  real    :: hyper_coeff
   integer :: n_wave
   integer :: constant_stream_flag
   integer :: explicit_trap_flag
