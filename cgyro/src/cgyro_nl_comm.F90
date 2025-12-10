@@ -358,7 +358,9 @@ subroutine hx_dealias
   
   integer :: ir,it,iv_loc_m,itor
   
-  ! Construct h_x_dealias array
+  if ((dealias_order == 0) .or. (dealias == 0.0)) then
+
+   ! Just copy over
 #if defined(OMPGPU)
 !$omp target teams distribute parallel do collapse(4) default(shared)
 #elif defined(_OPENACC)
@@ -366,7 +368,28 @@ subroutine hx_dealias
 #else
 !$omp parallel do collapse(4) default(shared)
 #endif
-  do itor=nt1,nt2
+   do itor=nt1,nt2
+    do iv_loc_m=1,nv_loc
+      do it=1,n_theta
+        do ir=1,n_radial
+          ! ic_c(ir,it) = (ir-1)*n_theta+it
+          outraw_dealias(ir,it,iv_loc_m,itor) = h_x((ir-1)*n_theta+it,iv_loc_m,itor)
+        enddo
+      enddo
+    enddo
+   enddo
+
+  else
+
+   ! Construct h_x_dealias array
+#if defined(OMPGPU)
+!$omp target teams distribute parallel do collapse(4) default(shared)
+#elif defined(_OPENACC)
+!$acc parallel loop collapse(4) gang vector independent default(present)
+#else
+!$omp parallel do collapse(4) default(shared)
+#endif
+   do itor=nt1,nt2
     do iv_loc_m=1,nv_loc
       do it=1,n_theta
         do ir=1,n_radial
@@ -375,13 +398,15 @@ subroutine hx_dealias
         enddo
       enddo
     enddo
-  enddo
-  ! Extended-angle dealiasing filter
-  call impfilter5(n_theta,n_radial,nv_loc,nt1,nt2,max_pvec_count,&
+   enddo
+   ! Extended-angle dealiasing filter
+   call impfilter5(n_theta,n_radial,nv_loc,nt1,nt2,max_pvec_count,&
                   dealias_order,dealias,&
                   box_size,q,sign_qs,&
                   dealias_pvec_count,dealias_pvec,&
                   inraw_dealias,fex_dealias,outraw_dealias)
+
+  endif
 end subroutine hx_dealias
 
 subroutine field_dealias
@@ -391,8 +416,10 @@ subroutine field_dealias
   implicit none
   
   integer :: ir,it,itf,itor
-  
-  ! Construct field_dealias array
+
+  if ((dealias_order == 0) .or. (dealias == 0.0)) then
+
+   ! Just copy over
 #if defined(OMPGPU)
 !$omp target teams distribute parallel do collapse(4) default(shared)
 #elif defined(_OPENACC)
@@ -400,7 +427,28 @@ subroutine field_dealias
 #else
 !$omp parallel do collapse(4) default(shared)
 #endif
-  do itor=nt1,nt2
+   do itor=nt1,nt2
+    do itf=1,n_field
+      do it=1,n_theta
+        do ir=1,n_radial
+          ! ic_c(ir,it) = (ir-1)*n_theta+it
+          outraw_dealias(ir,it,itf,itor) = field(itf,(ir-1)*n_theta+it,itor)
+        enddo
+      enddo
+    enddo
+   enddo
+
+  else
+
+   ! Construct field_dealias array
+#if defined(OMPGPU)
+!$omp target teams distribute parallel do collapse(4) default(shared)
+#elif defined(_OPENACC)
+!$acc parallel loop collapse(4) gang vector independent default(present)
+#else
+!$omp parallel do collapse(4) default(shared)
+#endif
+   do itor=nt1,nt2
     do itf=1,n_field
       do it=1,n_theta
         do ir=1,n_radial
@@ -409,13 +457,15 @@ subroutine field_dealias
         enddo
       enddo
     enddo
-  enddo
-  ! Extended angle dealiasing filter
-  call impfilter5(n_theta,n_radial,n_field,nt1,nt2,max_pvec_count,&
+   enddo
+   ! Extended angle dealiasing filter
+   call impfilter5(n_theta,n_radial,n_field,nt1,nt2,max_pvec_count,&
                   dealias_order,dealias,&
                   box_size,q,sign_qs,&
                   dealias_pvec_count,dealias_pvec,&
                   inraw_dealias,fex_dealias,outraw_dealias)
+
+  endif
 end subroutine field_dealias
 
 !
