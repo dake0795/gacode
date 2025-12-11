@@ -133,7 +133,9 @@ recursive subroutine impfilter5_i0(&
 !$omp target teams distribute parallel do collapse(3) &
 !$omp&         private(jm1,jm2,jm3,jp1,jp2,jp3)
 #elif defined(_OPENACC)
-  ! TODO
+!$acc parallel loop gang vector collapse(3) &
+!$acc&         private(jm1,jm2,jm3,jp1,jp2,jp3) &
+!$acc&         present(fraw,f)
 #else
 !$omp parallel do collapse(3) &
 !$omp&         private(jm1,jm2,jm3,jp1,jp2,jp3)
@@ -193,7 +195,9 @@ subroutine impfilter5_n0(&
 !$omp target teams distribute collapse(2) default(firstprivate)&
 !$omp&         shared(pvec_count,pvec,fraw,fex,f)
 #elif defined(_OPENACC)
-  ! TODO
+!$acc parallel loop gang collapse(2) &
+!$acc&         present(pvec_count,pvec,fraw,fex,f) &
+!$acc&         private(l0,l,npanel,nex)
 #else
 !$omp parallel do collapse(2) default(firstprivate)&
 !$omp&         shared(pvec_count,pvec,fraw,fex,f)
@@ -207,12 +211,21 @@ subroutine impfilter5_n0(&
   ! all _ex quantities refer to extended angle
   ! nex = total number of points along extended angle
   ! iex = extended angle index
+#if defined(OMPGPU)
+  ! nothing to do, no omp seq avail
+#elif defined(_OPENACC)
+!$acc loop seq &
+!$acc&         private(npanel,nex)
+#endif
   do l=1,l0
      npanel = pvec_count(l,itor-itor_offset)
      nex = n_theta*npanel
 #if defined(OMPGPU)
 !$omp parallel do collapse(2) default(firstprivate)&
 !$omp&         shared(fraw,fex,pvec)
+#elif defined(_OPENACC)
+!$acc loop vector collapse(2) &
+!$acc&         private(p,it,iex,ir)
 #endif
      do panel=1,npanel
         do it=1,n_theta
@@ -230,6 +243,10 @@ subroutine impfilter5_n0(&
 #if defined(OMPGPU)
 !$omp parallel do default(firstprivate)&
 !$omp&         shared(f,fex,pvec)
+#elif defined(_OPENACC)
+!$acc loop vector &
+!$acc&         private(jm1,jm2,jm3,jp1,jp2,jp3) &
+!$acc&         private(it,panel,p,ir,fval)
 #endif
      do iex=1,nex
         
@@ -364,7 +381,7 @@ subroutine hx_dealias
 #if defined(OMPGPU)
 !$omp target teams distribute parallel do collapse(4) default(shared)
 #elif defined(_OPENACC)
-!$acc parallel loop collapse(4) gang vector independent default(present)
+!$acc parallel loop gang vector collapse(4) present(outraw_dealias,h_x)
 #else
 !$omp parallel do collapse(4) default(shared)
 #endif
@@ -385,7 +402,7 @@ subroutine hx_dealias
 #if defined(OMPGPU)
 !$omp target teams distribute parallel do collapse(4) default(shared)
 #elif defined(_OPENACC)
-!$acc parallel loop collapse(4) gang vector independent default(present)
+!$acc parallel loop gang vector collapse(4) present(inraw_dealias,h_x)
 #else
 !$omp parallel do collapse(4) default(shared)
 #endif
@@ -423,7 +440,7 @@ subroutine field_dealias
 #if defined(OMPGPU)
 !$omp target teams distribute parallel do collapse(4) default(shared)
 #elif defined(_OPENACC)
-!$acc parallel loop collapse(4) gang vector independent default(present)
+!$acc parallel loop gang vector collapse(4) present(outraw_dealias,field)
 #else
 !$omp parallel do collapse(4) default(shared)
 #endif
@@ -444,7 +461,7 @@ subroutine field_dealias
 #if defined(OMPGPU)
 !$omp target teams distribute parallel do collapse(4) default(shared)
 #elif defined(_OPENACC)
-!$acc parallel loop collapse(4) gang vector independent default(present)
+!$acc parallel loop gang vector collapse(4) present(inraw_dealias,field)
 #else
 !$omp parallel do collapse(4) default(shared)
 #endif

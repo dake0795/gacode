@@ -112,7 +112,7 @@ subroutine cgyro_init_arrays
               else
                  jxvec_c(3,ic,iv_loc,itor) = fac * z(is)*bmag(it)/mass(is) &
                       /(k_perp(ic,itor)*rho)**2 &
-                      * (2 * bmag(it) * jloc_c(2,ic,itor) - jloc_c(1,ic,itor))
+                      * (2*bmag(it) * jloc_c(2,ic,itor) - jloc_c(1,ic,itor))
               endif
            endif
            
