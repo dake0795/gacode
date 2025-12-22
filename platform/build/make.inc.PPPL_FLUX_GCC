@@ -16,21 +16,16 @@ NUMAS_PER_NODE  = 1
 FC      = mpif90 -fallow-argument-mismatch -I$(GACODE_ROOT)/modules -J$(GACODE_ROOT)/modules -fPIC -I$(FFTW_HOME)/include -I$(NETCDF_FORTRAN_HOME)/include -I$(GACODE_ROOT)/../neural
 F77     = $(FC)
 
-# OpenMP
-FOMP    = -fopenmp
-
-# Use 8-byte reals by default (similar idea to -real-size 64 in Intel)
-FMATH   = -fdefault-real-8 -fdefault-double-8 
-
 # Optimization and debug flags
-FOPT    = -O2
-FDEBUG  = -g -fcheck=all -fbacktrace
+FOMP   = -fopenmp
+FMATH  = -fdefault-real-8 -fdefault-double-8
+FOPT   = -Ofast
+FDEBUG = -Wall -W -fcheck=mem,bounds -g -fbacktrace -ffpe-trap=invalid,zero,overflow
 
 F2PY    = f2py
 
 # System math libraries
 # If you really want MKL with GCC, replace this with an explicit MKL link line, e.g.:
-# LMATH = -L$(MKLROOT)/lib/intel64 -lmkl_rt -lpthread -lm -ldl
 LMATH   = -lm -L${FFTW_HOME}/lib -lfftw3_threads -lfftw3f_threads -lfftw3 -lfftw3f ${LLIBS}
 
 # NetCDF
