@@ -21,6 +21,35 @@ CPUSET=${CPUS[$SLURM_LOCALID]}
 export ACC_DEVICE_NUM=${DEVICE_NUM[${SLURM_LOCALID}]}
 export UCX_NET_DEVICES=${NICS[${SLURM_LOCALID}]}
 
+# Function to check if a NIC is active
+function is_nic_active() {
+    local nic=$1
+    state=$(ibstat $nic | grep "State:" | awk '{print $2}')
+    if [[ "$state" == "Active" ]]; then
+        return 0  # active
+    else
+        return 1  # down
+    fi
+}
+
+# Select NIC
+NIC=${NICS[$SLURM_LOCALID]}
+
+if ! is_nic_active ${NIC%%:*}; then
+    echo "$SLURM_PROCID Warning: $NIC is down, selecting fallback NIC"
+    # Define fallback order (use first available)
+    for alt in mlx5_0:1 mlx5_1:1 mlx5_4:1 mlx5_5:1; do
+        if is_nic_active ${alt%%:*}; then
+            NIC=$alt
+            echo "$SLURM_PROCID Using NIC $NIC instead"
+            break
+        fi
+    done
+fi
+
+export UCX_NET_DEVICES=$NIC
+echo "Using UCX NIC: $UCX_NET_DEVICES"
+
 echo "`uname -n` $SLURM_PROCID $SLURM_LOCALID $ACC_DEVICE_NUM `taskset -pc $CPUSET $$`"
 
 if [ ${NTASKS_PER_GPU} -gt 1 ]; then
