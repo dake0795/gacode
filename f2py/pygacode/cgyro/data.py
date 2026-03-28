@@ -70,7 +70,8 @@ class cgyrodata:
    def gettime(self):
 
       if not os.path.isfile(self.dir+'out.cgyro.time'):
-         print('INFO: (gettime) No time record exists')
+         if not self.silent:
+            print('INFO: (gettime) No time record exists')
          return False
 
       #-----------------------------------------------------------------
@@ -129,6 +130,13 @@ class cgyrodata:
          self.bparb = np.reshape(data[:nd],(self.n_theta*self.n_radial,nt),'F')
          if not self.silent:
             print('INFO: (getdata) Read data in '+fmt+f+' '+t)
+
+      f='.cgyro.eparb'
+      t,fmt,data = self.extract(f,cmplx=True)
+      if fmt != 'null':
+         self.eparb = np.reshape(data[:nd],(self.n_theta*self.n_radial,nt),'F')
+         if not self.silent:
+            print('INFO: (getdata) Read data in '+fmt+f+' '+t)
       #-----------------------------------------------------------------
 
       #-----------------------------------------------------------------
@@ -143,7 +151,7 @@ class cgyrodata:
          self.hb = self.hb/np.max(self.hb)
       #-----------------------------------------------------------------
 
-   def getflux(self,cflux='auto'):
+   def getflux(self,cflux='auto',total=False):
 
       if cflux == 'auto':
          if abs(self.gamma_e) > 0.0 and self.n_n > 1:
@@ -180,6 +188,9 @@ class cgyrodata:
       self.n_flux = m
       #-----------------------------------------------------------------
 
+      if total:
+         self.fluxtot = np.sum(self.ky_flux,axis=(2,3)) 
+      
       return usec
 
    def getxflux(self):
@@ -415,6 +426,12 @@ class cgyrodata:
       mark = mark+self.n_n
       self.radialdiss = np.array(data[mark:mark+self.n_radial])
 
+      mark = mark+self.n_radial
+      self.hiprec_flag = int(data[mark])
+
+      mark = mark+1
+      self.dealias = float(data[mark])
+ 
       if not self.silent:
          print('INFO: (getgrid) Read grid data in out.cgyro.grids')
       #-----------------------------------------------------------------
@@ -518,76 +535,6 @@ class cgyrodata:
       else:
          if not self.silent:
             print('INFO: (getgrid) Read {:d} entries out.cgyro.equilibrium.'.format(p))
-
-      
-   def getequil_legacy(self):
-
-      nshape = 7
-      ns = self.n_species
-      p = 0
-      data = np.fromfile(self.dir+'out.cgyro.equilibrium',sep=' ')
-      self.rmin,p    = self.eget(data,p)
-      self.rmaj,p    = self.eget(data,p)
-      self.q,p       = self.eget(data,p)
-      self.shear,p   = self.eget(data,p)
-      self.shift,p   = self.eget(data,p)
-      self.kappa,p   = self.eget(data,p)
-      self.s_kappa,p = self.eget(data,p)
-      self.delta,p   = self.eget(data,p)
-      self.s_delta,p = self.eget(data,p)
-      self.zeta,p    = self.eget(data,p)
-      self.s_zeta,p  = self.eget(data,p)
-      self.zmag,p    = self.eget(data,p)
-      self.dzmag,p   = self.eget(data,p)
-
-      self.shape_sin   = np.zeros(nshape)
-      self.shape_s_sin = np.zeros(nshape)
-      self.shape_cos   = np.zeros(nshape)
-      self.shape_s_cos = np.zeros(nshape)
-      for i in range(3,nshape):
-         self.shape_sin[i],p   = self.eget(data,p)
-         self.shape_s_sin[i],p = self.eget(data,p)
-      for i in range(nshape):
-         self.shape_cos[i],p   = self.eget(data,p)
-         self.shape_s_cos[i],p = self.eget(data,p)
-
-      self.rho,p           = self.eget(data,p)
-      self.ky0,p           = self.eget(data,p)
-      self.betae_unit,p    = self.eget(data,p)
-      self.beta_star,p     = self.eget(data,p)
-      self.lambda_star,p   = self.eget(data,p)
-      self.gamma_e,p       = self.eget(data,p)
-      self.gamma_p,p       = self.eget(data,p)
-      self.mach,p          = self.eget(data,p)
-      self.a_meters,p      = self.eget(data,p)
-      self.b_unit,p        = self.eget(data,p)
-      self.b_gs2,p         = self.eget(data,p)
-      self.dens_norm,p     = self.eget(data,p)
-      self.temp_norm,p     = self.eget(data,p)
-      self.vth_norm,p      = self.eget(data,p)
-      self.mass_norm,p     = self.eget(data,p)
-      self.rho_star_norm,p = self.eget(data,p)
-      self.gamma_gb_norm,p = self.eget(data,p)
-      self.q_gb_norm,p     = self.eget(data,p)
-      self.pi_gb_norm,p    = self.eget(data,p)
-
-      # Define species vectors
-      self.z      = np.zeros(ns)
-      self.mass   = np.zeros(ns)
-      self.dens   = np.zeros(ns)
-      self.temp   = np.zeros(ns)
-      self.dlnndr = np.zeros(ns)
-      self.dlntdr = np.zeros(ns)
-      self.nu     = np.zeros(ns)
-      for i in range(ns):
-         self.z[i],p      = self.eget(data,p)
-         self.mass[i],p   = self.eget(data,p)
-         self.dens[i],p   = self.eget(data,p)
-         self.temp[i],p   = self.eget(data,p)
-         self.dlnndr[i],p = self.eget(data,p)
-         self.dlntdr[i],p = self.eget(data,p)
-         self.nu[i],p     = self.eget(data,p)
-
          
    def getnorm(self,norm):
 

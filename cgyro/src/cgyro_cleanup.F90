@@ -124,6 +124,7 @@ subroutine cgyro_cleanup
   if(allocated(field_old))           deallocate(field_old)
   if(allocated(field_old2))          deallocate(field_old2)
   if(allocated(field_old3))          deallocate(field_old3)
+  if(allocated(epar))                deallocate(epar)
   if(allocated(moment))              deallocate(moment)
   if(allocated(moment_loc))          deallocate(moment_loc)
   if(allocated(cflux))               deallocate(cflux)
@@ -297,14 +298,8 @@ subroutine cgyro_cleanup
      ccl_del_device(gpack32)
      deallocate(gpack32)
   endif
-  if (allocated(cmat)) then
-     ccl_del_bigdevice(cmat)
-     deallocate(cmat)
-  endif
-  if (allocated(cmat_fp32)) then
-     ccl_del_bigdevice(cmat_fp32)
-     deallocate(cmat_fp32)
-  endif
+  call deallocate_cmat
+  call deallocate_cmat_fp32
   if (allocated(cmat_stripes)) then
      ccl_del_bigdevice(cmat_stripes)
      deallocate(cmat_stripes)
@@ -315,13 +310,17 @@ subroutine cgyro_cleanup
   endif
 
 
-  if (allocated(dealias_pvec)) then
-     ccl_del_bigdevice(dealias_pvec)
-     deallocate(dealias_pvec)
+  if (allocated(dealias_raw_ir)) then
+     ccl_del_bigdevice(dealias_raw_ir)
+     deallocate(dealias_raw_ir)
   endif
-  if (allocated(dealias_pvec_count)) then
-     ccl_del_bigdevice(dealias_pvec_count)
-     deallocate(dealias_pvec_count)
+  if (allocated(dealias_raw_it)) then
+     ccl_del_bigdevice(dealias_raw_it)
+     deallocate(dealias_raw_it)
+  endif
+  if (allocated(dealias_raw_ph)) then
+     ccl_del_bigdevice(dealias_raw_ph)
+     deallocate(dealias_raw_ph)
   endif
 
   if(allocated(inraw_dealias))  then
@@ -331,10 +330,6 @@ subroutine cgyro_cleanup
   if(allocated(outraw_dealias))  then
      ccl_del_device(outraw_dealias)     
      deallocate(outraw_dealias)
-  endif
-  if(allocated(fex_dealias))  then
-     ccl_del_device(fex_dealias)     
-     deallocate(fex_dealias)
   endif
 
 #ifndef CGYRO_GPU_FFT

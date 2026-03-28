@@ -43,6 +43,10 @@ subroutine cgyro_init_manager
      fmtstrn ='(10(es11.4,1x))'
    endif
   
+#ifndef CGYRO_GPU_FFT
+  gpu_bigmem_flag = 0
+#endif
+
   !------------------------------------------------------
   ! Initialize startup timers 
   !  NOTE: "Runtime" timers are initialized in cgyro_write_timedata,
@@ -180,6 +184,7 @@ subroutine cgyro_init_manager
      allocate(field_old(n_field,nc,nt1:nt2))
      allocate(field_old2(n_field,nc,nt1:nt2))
      allocate(field_old3(n_field,nc,nt1:nt2))
+     allocate(epar(nc,nt1:nt2))
      allocate(    moment(n_radial,theta_plot,n_species,nt1:nt2,3))
      allocate(moment_loc(n_radial,theta_plot,n_species,nt1:nt2,3))
      allocate(    cflux(n_species,4,n_field,nt1:nt2))
@@ -369,6 +374,10 @@ subroutine cgyro_init_manager
         allocate(cmat_simple(n_xi,n_xi,n_energy,n_species,n_theta,nt1:nt2))
      else
         if (collision_precision_mode == 1) then
+           if (collision_model>=6) then
+             call cgyro_error("COLLISION_PRECISION_MODE 1 not supported for COLLISION_MODEL >=6")
+             return
+           endif
            ! the lowest energy(s) has the most spread, so treat differently
            n_low_energy = 1
            do ie=2,n_energy
@@ -376,16 +385,20 @@ subroutine cgyro_init_manager
                n_low_energy = ie
              endif
            enddo
-           allocate(cmat_fp32(nv,nv,nc_loc_coll,nt1:nt2))
+           call allocate_cmat_fp32(nv,nc_loc_coll,nt1,nt2)
            allocate(cmat_stripes(n_xi,n_species,(n_low_energy+1):n_energy,n_xi,nc_loc_coll,nt1:nt2))
            allocate(cmat_e1(n_xi,n_species,n_low_energy,nv,nc_loc_coll,nt1:nt2))
 
            write (msg, "(A,I1,A)") "Using fp32 collision precision except e<=",n_low_energy," or same e&s."
            call cgyro_info(msg)
         else if (collision_precision_mode == 32) then
-           allocate(cmat_fp32(nv,nv,nc_loc_coll,nt1:nt2))
+           if (collision_model>=6) then
+             call cgyro_error("COLLISION_PRECISION_MODE 32 not supported for COLLISION_MODEL >=6")
+             return
+           endif
+           call allocate_cmat_fp32(nv,nc_loc_coll,nt1,nt2)
         else
-           allocate(cmat(nv,nv,nc_loc_coll,nt1:nt2))
+           call allocate_cmat(nv,nc_loc_coll,nt1,nt2)
         endif
      endif
 
@@ -396,10 +409,6 @@ subroutine cgyro_init_manager
      ! something went terribly wrong
      return
   endif
-
-#ifndef CGYRO_GPU_FFT
-  gpu_bigmem_flag = 0
-#endif
 
   if (test_flag == 0) then
 

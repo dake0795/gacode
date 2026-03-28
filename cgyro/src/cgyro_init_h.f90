@@ -4,6 +4,7 @@ subroutine cgyro_init_h
   use cgyro_globals
   use cgyro_io
   use cgyro_restart
+  use cgyro_step, ONLY: delta_t_last,delta_t_at_restart
 
   implicit none
 
@@ -69,6 +70,11 @@ subroutine cgyro_init_h
      i_current = 0
      t_current = 0.0
      gtime(:) = 0.0
+
+     ! Save what we started with
+     i_at_restart = 0
+     t_at_restart = 0.0
+     delta_t_at_restart = 0.0
 
      !-------------------------------------------------------------------------
      ! Generate analytic initial conditions
@@ -180,6 +186,7 @@ subroutine cgyro_init_h
 
      endif
   end select
+
 
   call cgyro_field_c_cpu(.TRUE.)
 

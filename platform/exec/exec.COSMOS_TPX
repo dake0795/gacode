@@ -24,6 +24,9 @@ export MPICH_GPU_SUPPORT_ENABLED=1
 ulimit -c unlimited
 ulimit -s unlimited
 
+# disable "smart" Cray BLAS
+export CRAYBLAS_LEVEL3_LEGACY=1
+
 #echo "> srun -n$nmpi -c$nomp --gpus-per-task=1 --gpu-bind=closest $exec"
 #srun -n$nmpi -c$nomp --gpus-per-task=1 --gpu-bind=closest $exec
 echo "> srun --threads-per-core=1 -n$nmpi -c$nomp $GACODE_ROOT/platform/exec/wrap.${GACODE_PLATFORM} $exec"

@@ -76,12 +76,16 @@ subroutine cgyro_make_profiles
   beta_star_fac = beta_star_fac*beta_star_scale
 
   ! Compute effective charge (diagnostic)
-  z_eff = 0.0
-  do is=1,n_species
-     if (z(is) > 0.0) then 
-        z_eff = z_eff+dens(is)*z(is)**2/dens_ele
-     endif
-  enddo
+  if(z_eff_method == 1 .and. collision_model == 1) then
+     ! use input z_eff
+  else
+     z_eff = 0.0
+     do is=1,n_species
+        if (z(is) > 0.0) then 
+           z_eff = z_eff+dens(is)*z(is)**2/dens_ele
+        endif
+     enddo
+  endif
 
   ! Check electron species consistency
   num_ele = 0

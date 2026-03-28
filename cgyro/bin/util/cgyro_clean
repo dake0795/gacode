@@ -1,108 +1,125 @@
 #!/usr/bin/env python
 
 import os,sys,glob
-import numpy as np
+import shutil
+import tarfile
 import argparse
 import textwrap
 
-# Command line option parser
-def opts():
+mytext = '''\
+output:
+   This command provides tools for cleaning and copying cgyro directories.
+   Examples:
 
-    mytext = '''\
-    output:
-       This command provides tools for cleaning and copying xgyro directories.
-       Examples:
+   cgyro --c clean              (cleans current directory recursively)
+   cgyro --c clean -opt         (cleans but preserves timing files)
+   cgyro --c copy -i idir       (creates idir_copy without restart files)
+   cgyro --c copy -i idir -tgz  (creates idir_copy.tgz without restart files)
+'''
 
-       cgyro --c -c              (cleans current directory recursively)
-       cgyro --c -i idir         (creates copy of idir without restart files)
-       cgyro --c -i idir -t tdir (copies idir -> tdir without restart files)
-    '''
+parser = argparse.ArgumentParser(
+    formatter_class=argparse.RawTextHelpFormatter,
+    prog = 'cgyro --c',
+    description="Directory clean/copy utility",
+    epilog=textwrap.dedent(mytext))
 
-    parser = argparse.ArgumentParser(
-        formatter_class=argparse.RawTextHelpFormatter,
-        prog = 'cgyro_clean',
-        description="Directory clean/copy utility",
-        epilog=textwrap.dedent(mytext))
+subparsers = parser.add_subparsers(dest='mode')
 
-    parser.add_argument('-i',
-                        help='initial directory (default: cwd)',
-                        type=str,
-                        nargs='?')
-    parser.add_argument('-t',
-                        help='target directory (default: _copy)',
-                        type=str,
-                        nargs='?')
-    parser.add_argument('-c',
-                        help='Clean directories recursively (all out.* and bin.* files)',
-                        action='store_true')
-    parser.add_argument('-opt',
-                        help='Preserve timing files',
-                        action='store_true')
-    parser.add_argument('-v',
-                        help='Verbose output',
-                        action='store_true')
-    
-    args=parser.parse_args()
+# clean subcommand
+p_clean = subparsers.add_parser('clean',help='Clean directories recursively')
+p_clean.add_argument('-opt',
+                     help='Preserve timing files',
+                     action='store_true')
 
-    return args.i,args.t,args.c,args.opt,args.v
+# copy subcommand
+p_copy = subparsers.add_parser('copy',help='Copy directory without restart files')
+p_copy.add_argument('-i',
+                    help='Source directory',
+                    type=str,
+                    required=True)
+p_copy.add_argument('-nokxky',
+                    help='Suppress copying bin.cgyro.kxky* files',
+                    action='store_true')
+p_copy.add_argument('-minimal',
+                    help='Remove non-essential output files and kxky files from copy',
+                    action='store_true')
+p_copy.add_argument('-tgz',
+                    help='Compress copied directory into a tgz file',
+                    action='store_true')
+p_copy.add_argument('-v',
+                    help='Verbose output',
+                    action='store_true')
 
-#------------------------------------------------------------------------
-#
-idir,tdir,c,opt,v = opts()
+args = parser.parse_args()
 
-# Check for no arguments
-if idir is None and tdir is None and not c:
+if args.mode is None:
+    parser.print_help()
     sys.exit()
 
-    
-if opt:
-    # Keep timing 
-    patterns = ['**/out.cgyro.[a-s]*',
-                '**/out.cgyro.time',
-                '**/bin.*',
-                '**/*gen',
-                '**/batch.err',
-                '**/batch.out']
-else:
-    patterns = ['**/out.cgyro.*',
-                '**/bin.*',
-                '**/*gen',
-                '**/batch.err',
-                '**/batch.out']
- 
-# Recursive clean
-if c:
+#------------------------------------------------------------------------
+# clean mode
+#
+if args.mode == 'clean':
+
+    if args.opt:
+        # Keep timing
+        patterns = ['**/out.cgyro.[a-s]*',
+                    '**/out.cgyro.t[a-h]*',
+                    '**/out.cgyro.time',
+                    '**/out.cgyro.[u-z]*',
+                    '**/bin.*',
+                    '**/*gen',
+                    '**/batch.err',
+                    '**/batch.out']
+    else:
+        patterns = ['**/out.cgyro.*',
+                    '**/bin.*',
+                    '**/*gen',
+                    '**/batch.err',
+                    '**/batch.out']
+
     for pattern in patterns:
         for file in glob.glob(pattern,recursive=True):
             os.remove(file)
-    
-    sys.exit()
 
-if idir is None:
-    print('ERROR: specify -i <idir>')
-    sys.exit()
+#------------------------------------------------------------------------
+# copy mode
+#
+elif args.mode == 'copy':
 
-if tdir is None:
-    tdir = idir+'_copy/'
+    idir = args.i
+    tdir = idir+'_copy'
 
-idir = idir+'/'
+    flags = '-av' if args.v else '-a'
 
-if v:
-    flags = '-av'
-else:
-    flags = '-a'
+    # Files to always exclude from copy
+    exfiles = ['bin.cgyro.restart',
+               'bin.cgyro.restart.old',
+               'bin.cgyro.restart.part',
+               'halt',
+               'gyrotest_flag',
+               'out.log']
 
-# Directory copy
-exfiles = ['bin.cgyro.restart',
-           'bin.cgyro.restart.old',
-           'halt',
-           'gyrotest_flag',
-           'out.log']
+    if args.nokxky or args.minimal:
+        exfiles.append('bin.cgyro.kxky*')
 
-exstr = ""
-for ex in exfiles:
-    exstr = exstr+"--exclude '"+ex+"' "
+    if args.minimal:
+        exfiles += ['out.cgyro.hosts',
+                    'out.cgyro.memory',
+                    'out.cgyro.mpi',
+                    'out.cgyro.rotation',
+                    'out.cgyro.startups',
+                    'out.cgyro.tag',
+                    'out.cgyro.timing']
 
-os.system("rsync "+flags+" "+exstr+idir+" "+tdir)
+    exstr = ""
+    for ex in exfiles:
+        exstr = exstr+"--exclude '"+ex+"' "
 
+    os.system("rsync "+flags+" "+exstr+idir+"/ "+tdir)
 
+    # Compress into tgz and remove directory
+    if args.tgz:
+        with tarfile.open(tdir+'.tgz','w:gz') as tar:
+            tar.add(tdir,arcname=os.path.basename(tdir))
+        shutil.rmtree(tdir)

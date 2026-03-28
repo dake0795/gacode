@@ -76,9 +76,10 @@ class cgyrodata_plot(data.cgyrodata):
       # Alfven diagnostic
       rho   = sum(self.mass*self.dens)
       betae = self.betae_unit/self.b_gs2**2
-      v_A   = np.sqrt(2/(betae*rho))
-      w_TAE = v_A/(2*self.q*self.rmaj) 
-      ax.plot([0,t[-1]],[w_TAE,w_TAE],linestyle='--')
+      if betae > 0.0:
+         v_A   = np.sqrt(2/(betae*rho))
+         w_TAE = v_A/(2*self.q*self.rmaj)         
+         ax.plot([0,t[-1]],[w_TAE,w_TAE],linestyle='--')
 
       #======================================
       # Gamma
@@ -258,10 +259,13 @@ class cgyrodata_plot(data.cgyrodata):
          ytag = r'$\delta\phi$'
       elif field == 1:
          f = self.aparb[:,itime]
-         ytag = r'$A_\parallel$'
+         ytag = r'$\delta A_\parallel$'
       elif field == 2:
          f = self.bparb[:,itime]
-         ytag = r'$B_\parallel$'
+         ytag = r'$\delta B_\parallel$'
+      elif field == 3:
+         f = self.eparb[:,itime]*np.pi*self.q*self.rmaj
+         ytag = r'$\left( \pi q R_0 \right) \, \delta E_\parallel$'
 
       ax = fig.add_subplot(111)
       ax.grid(which="both",ls=":")
@@ -280,7 +284,6 @@ class cgyrodata_plot(data.cgyrodata):
             ax.set_xlim([1-self.n_radial,-1+self.n_radial])
          else:
             ax.set_xlim([-tmax,tmax])
-
             
       # normalization is phi(complex) where |phi| is max
       n0 = np.argmax(abs(self.phib[:,itime]))
@@ -289,14 +292,9 @@ class cgyrodata_plot(data.cgyrodata):
       y1 = np.real(f/f_norm)
       y2 = np.imag(f/f_norm)
 
-
       ax.plot(x,y1,'-o',color='black',markersize=2,label=r'$\mathrm{Re}$')
       ax.plot(x,y2,'-o',color='red'  ,markersize=2,label=r'$\mathrm{Im}$')
 
-      #iwid = np.argmin(abs(y1-0.5))
-      #w = x[iwid]/np.sqrt(np.log(2))
-      #ax.plot(x,np.exp(-(x/w)**2),color='black',linestyle=':')
-     
       ax.legend()
 
       fig.tight_layout(pad=0.3)
@@ -559,7 +557,7 @@ class cgyrodata_plot(data.cgyrodata):
       for i in range(self.n_flux):
          bstr=''
          for ispec in range(ns):
-            ave = time_average(ys[ispec,i,:],t,imin,imax) ; var=0
+            ave = time_average(ys[ispec,i,:]*norm_vec[ispec],t,imin,imax) ; var=0
             bstr = bstr+"{:7.3f}".format(ave)+' '
          print(tag[i]+' '+bstr)
 
@@ -976,20 +974,20 @@ class cgyrodata_plot(data.cgyrodata):
       t = self.getnorm(xin['norm'])
       self.getbigfield()
 
-      print('INFO: (plot_zf) Using theta index n_theta/3+1')
       nselect=0 
+      print('INFO: (plot_zf) Using theta index {}'.format(nselect))
       if field == 0:
-         f = self.kxky_phi[0,:,nselect,0,:]
+         f = self.kxky_phi[:,nselect,0,:]
       elif field == 1:
-         f = self.kxky_apar[0,:,nselect,0,:]
+         f = self.kxky_apar[:,nselect,0,:]
       else:
-         f = self.kxky_bpar[0,:,nselect,0,:]
+         f = self.kxky_bpar[:,nselect,0,:]
 
       for i,k0 in enumerate(self.kx):
          # Initialization in CGYRO is with 1e-6*besselj0 # phic[0]
          gfactor = 1e6*(1-np.i0(k0**2)*np.exp(-k0**2))/(np.i0(k0**2)*np.exp(-k0**2))
 
-         y = f[i,:]*gfactor
+         y = np.real(f[i,:])*gfactor
          ax.plot(t,y,label=self.kxstr+r'$={:.4f}$'.format(k0))
 
          #----------------------------------------------------

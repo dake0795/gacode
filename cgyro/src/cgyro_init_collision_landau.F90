@@ -36,7 +36,7 @@ contains
          k_perp,bmag,&
          alpha_poly,&
          i_proc,n_proc,&
-         cmat
+         cmat, copy_into_cmat, copy_from_cmat_all
     use landau, landauvb=>verbose
     use gyrotransformation, gtvb=>verbose
     use half_hermite
@@ -54,6 +54,7 @@ contains
 
     ! for comparison purposes only for collision_test_mode==1:
     real, allocatable :: cmat1(:,:,:,:)
+    real, target, allocatable :: cmat2(:,:,:,:)
     
     ! for Lapack
     real, dimension(:),allocatable :: work
@@ -87,6 +88,7 @@ contains
     real rcond
     character equed
     real, allocatable, dimension(:,:,:,:) :: m1,m2
+    real, dimension(:,:), target, allocatable :: cmat_loc
     real, allocatable :: chebweightarr(:)
     real target_k,target_ik
     integer ix,ie,jx,je,iv,jv
@@ -946,6 +948,7 @@ contains
     t(8)=t2-t1
     t1=t2
 
+    allocate(cmat_loc(nv,nv))
     ! now to the k-interpolation of cmat
     allocate(chebweightarr(nkmax))
     !allocate(m1(n_energy,n_xi,n_energy,n_xi))
@@ -979,7 +982,7 @@ contains
                       do ix=1,n_xi
                          do ie=1,n_energy
                             iv=iv_v(ie,ix,ia)
-                            cmat(iv,jv,ic_loc,itor)=-m1(ie,ix,je,jx)
+                            cmat_loc(iv,jv)=-m1(ie,ix,je,jx)
 !!$                           if (gyrocolmat(ie,ix,je,jx,ia,ib,1)==0 .and. ic_loc==1) &
 !!$                                print *,'zero gc i_proc',i_proc,&
 !!$                                '(ie,ix,ia,je,jx,ib,ic_loc)',ie,ix,ia,je,jx,ib,ic_loc
@@ -987,11 +990,13 @@ contains
                       end do
                    end do
                 end do
+                call copy_into_cmat(cmat_loc,ic_loc,itor)
              end do
           end do
        end do
     end do
     deallocate(chebweightarr)
+    deallocate(cmat_loc)
     deallocate(m1)
     call cpu_time(t2)
     t(10)=t2-t1
@@ -1010,8 +1015,11 @@ contains
     
     coltestmode: if(collision_test_mode==1) then
        allocate(cmat1(nv,nv,nc_loc_coll,nt1:nt2))
+       allocate(cmat2(nv,nv,nc_loc_coll,nt1:nt2))
        ! compute old collision operator in cmat1
        call old_sugama(cmat1) !<--- this is in this module.
+       ! Make a copy of the main cmat into cmat2, to ensure it is CPU-accessible
+       call copy_from_cmat_all(cmat2)
 !!$    do ia=1,n_species
 !!$       do ib=1,n_species
 !!$          if (ia>=ib .and. temp(ia)/=temp(ib)) then
@@ -1066,7 +1074,7 @@ contains
                             do ix=1,n_xi
                                do ie=1,n_energy
                                   iv=iv_v(ie,ix,ia)
-                                  c(ie,ix,je,jx,1)=cmat(iv,jv,ic_loc,itor)
+                                  c(ie,ix,je,jx,1)=cmat2(iv,jv,ic_loc,itor)
                                   c(ie,ix,je,jx,2)=cmat1(iv,jv,ic_loc,itor)
                                end do
                             end do
@@ -1107,7 +1115,7 @@ contains
 !!$                          do ie=1,n_energy
 !!$                             do jx=1,n_xi
 !!$                                do je=1,n_energy
-!!$                                   s(je,jx)=s(je,jx)+cmat(iv_v(je,jx,ia),iv_v(ie,ix,ib),ic_loc,itor)
+!!$                                   s(je,jx)=s(je,jx)+cmat2(iv_v(je,jx,ia),iv_v(ie,ix,ib),ic_loc,itor)
 !!$                                   s1(je,jx)=s1(je,jx)+cmat1(iv_v(je,jx,ia),iv_v(ie,ix,ib),ic_loc,itor)
 !!$                                end do
 !!$                             end do
@@ -1180,7 +1188,7 @@ contains
                             do ix=1,n_xi
                                do ie=1,n_energy
                                   iv=iv_v(ie,ix,ia)
-                                  c(ie,ix,je,jx,1)=cmat(iv,jv,ic_loc,itor)
+                                  c(ie,ix,je,jx,1)=cmat2(iv,jv,ic_loc,itor)
                                   c(ie,ix,je,jx,2)=cmat1(iv,jv,ic_loc,itor)
                                end do
                             end do
@@ -1264,13 +1272,13 @@ contains
                             do jx=1,n_xi
                                do je=1,n_energy
                                   jv=iv_v(je,jx,js)
-                                  d=abs(cmat(iv,jv,ic_loc,itor)-cmat1(iv,jv,ic_loc,itor))
+                                  d=abs(cmat2(iv,jv,ic_loc,itor)-cmat1(iv,jv,ic_loc,itor))
                                   if (d>md) then
                                      md=d
 77                                   format (A,2I3,2(A,3I3),3(A,G23.16))
                                      !if (i_proc==0) &
                                      print 77,'so far max cmat diff @ (itor,ic_loc)',itor,ic_loc,'(is,ix,ie)=',is,ix,ie,&
-                                          '(js,jx,je)=',js,jx,je,'d=',d,'c=',cmat(iv,jv,ic_loc,itor),&
+                                          '(js,jx,je)=',js,jx,je,'d=',d,'c=',cmat2(iv,jv,ic_loc,itor),&
                                           'c1=',cmat1(iv,jv,ic_loc,itor)
                                   end if
                                end do

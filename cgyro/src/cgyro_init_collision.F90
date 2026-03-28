@@ -25,7 +25,8 @@ subroutine cgyro_init_collision
   integer :: itor
   ! parameters for matrix solve
   real, dimension(:,:), allocatable :: cmat_base1,cmat_base2
-  real, dimension(:,:), allocatable :: amat,cmat_loc
+  real, dimension(:,:), allocatable, target :: amat,cmat_loc
+  real(KIND=REAL32), dimension(:,:), allocatable, target :: amat_fp32
   real, dimension(:,:,:,:,:,:), allocatable :: ctest
   real, dimension(:,:,:,:), allocatable :: bessel
   ! diagnostics
@@ -53,7 +54,6 @@ subroutine cgyro_init_collision
      ! collision_model=6 (Landau) or 7 (New Sugama method [Galerkin])
      ! The way this is included now isn't harmonic with Igor's changes
      ! cmat -> cmat_loc. The reason is to make the merge simpler.
-     if (collision_precision_mode/=0) allocate(cmat(nv,nv,nc_loc_coll,nt1:nt2))
      call cgyro_init_landau
   else
      allocate(nu_d(n_energy,n_species,n_species))
@@ -87,6 +87,10 @@ subroutine cgyro_init_collision
                     else
                        ! e-i
                        nu_d(ie,is,js) = tauinv_ab * (1.0/xa**3)
+                       if (z_eff_method == 1) then
+                          nu_d(ie,is,js) = nu_d(ie,is,js) * z(is)**2 / z(js)**2 &
+                               * dens(is)/dens(js) * z_eff/(n_species-1)
+                       endif
                     endif
                  endif
 
@@ -464,6 +468,12 @@ subroutine cgyro_init_collision
   allocate(i_piv(nv))
   
   allocate(amat(nv,nv))
+  if ((collision_precision_mode==1).or.(collision_precision_mode==32)) then
+    allocate(amat_fp32(nv,nv))
+  else
+    ! not used, but avoid having it undefined
+    allocate(amat_fp32(1,1))
+  endif
   allocate(cmat_loc(nv,nv))
 
   ! Construct the collision matrix
@@ -487,7 +497,7 @@ subroutine cgyro_init_collision
 !$omp& private(ic,ic_loc,it,ir,info,rval,my_dens2_rot,my_bj0,my_bj1) &
 !$omp& private(iv,is,ix,ie,jv,js,jx,je,ks) &
 !$omp& private(amat_sum,cmat_sum,cmat_diff,cmat_rel_diff,cmat32_sum,cmat32_diff) &
-!$omp& private(amat,cmat_loc,my_cmat_fp32,i_piv) &
+!$omp& private(amat,amat_fp32,cmat_loc,my_cmat_fp32,i_piv) &
 !$omp& firstprivate(collision_precision_mode,n_low_energy) &
 !$omp& shared(cmat,cmat_fp32,cmat_stripes,cmat_e1) &
 !$omp& reduction(+:cmat_diff_global_loc,cmat32_diff_global_loc) &
@@ -608,7 +618,7 @@ subroutine cgyro_init_collision
 
         case(6,7)
            ! write the Landau/new collision matrix into the local array
-           cmat_loc(:,:)=cmat(:,:,ic_loc,itor)
+           call copy_from_cmat(cmat_loc,ic_loc,itor)
 
         case default
            cmat_loc(:,:) = 0.0
@@ -753,7 +763,8 @@ subroutine cgyro_init_collision
         ! result in amat, transfer to the right cmat matrix
         if (collision_precision_mode == 1) then
            ! keep all cmat in fp32 precision
-           cmat_fp32(:,:,ic_loc,itor) = amat(:,:)
+           amat_fp32(:,:) = amat(:,:)
+           call copy_into_cmat_fp32(amat_fp32,ic_loc,itor)
            ! keep the remaining precision for select elements
            do jv=1,nv
               je = ie_v(jv)
@@ -765,11 +776,11 @@ subroutine cgyro_init_collision
               do iv=1,nv
                  ! using abs values, as I am gaugung precision errors, and this avoid symmetry cancellations
                  amat_sum = amat_sum + abs(amat(iv,jv))
-                 cmat32_sum = cmat32_sum + abs(cmat_fp32(iv,jv,ic_loc,itor))
+                 cmat32_sum = cmat32_sum + abs(amat_fp32(iv,jv))
                  ie = ie_v(iv)
                  is = is_v(iv)
                  ix = ix_v(iv)
-                 my_cmat_fp32 = cmat_fp32(iv,jv,ic_loc,itor)
+                 my_cmat_fp32 = amat_fp32(iv,jv)
                  if (ie<=n_low_energy) then ! always keep all detail for lowest energy
                     cmat_e1(ix,is,ie,jv,ic_loc,itor) = amat(iv,jv) - my_cmat_fp32
                     ! my_cmat_fp32 not used for the original purpose anymore, reuse to represent the reduced precsion
@@ -803,15 +814,17 @@ subroutine cgyro_init_collision
            enddo
         else if (collision_precision_mode == 32) then
            ! keep all cmat in fp32 precision
-           cmat_fp32(:,:,ic_loc,itor) = amat(:,:)
+           amat_fp32(:,:) = amat(:,:)
+           call copy_into_cmat_fp32(amat_fp32,ic_loc,itor)
         else
            ! keep all cmat in full precision
-           cmat(:,:,ic_loc,itor) = amat(:,:)
+           call copy_into_cmat(amat,ic_loc,itor)
         endif
 
      enddo
   enddo
   deallocate(cmat_loc)
+  deallocate(amat_fp32)
   deallocate(amat)
 
   if (collision_model == 4 .and. collision_kperp == 1 .and. &
@@ -822,10 +835,10 @@ subroutine cgyro_init_collision
 
   if (collision_precision_mode == 1) then
 #if defined(OMPGPU)
-     ! no async for OMPGPU for now
-!$omp target enter data map(to:cmat_fp32,cmat_stripes,cmat_e1) if (gpu_bigmem_flag > 0)
+!$omp target enter data map(to:cmat_stripes,cmat_e1) if (gpu_bigmem_flag > 0)
 #elif defined(_OPENACC)
-!$acc enter data copyin(cmat_fp32,cmat_stripes,cmat_e1) async if (gpu_bigmem_flag > 0)
+!$acc enter data copyin(cmat_stripes,cmat_e1) async if (gpu_bigmem_flag > 0)
+!$acc update device(cmat_fp32) async if (gpu_bigmem_flag > 0)
 #endif
      call MPI_ALLREDUCE(cmap_fp32_error_abs_cnt_loc,&
           cmap_fp32_error_abs_cnt,&
@@ -896,15 +909,15 @@ subroutine cgyro_init_collision
 #endif
   else if (collision_precision_mode == 32) then
 #if defined(OMPGPU)
-!$omp target enter data map(to:cmat_fp32) if (gpu_bigmem_flag > 0)
+    ! nothing to do
 #elif defined(_OPENACC)
-!$acc enter data copyin(cmat_fp32) if (gpu_bigmem_flag > 0)
+!$acc update device(cmat_fp32) if (gpu_bigmem_flag > 0)
 #endif
   else
 #if defined(OMPGPU)
-!$omp target enter data map(to:cmat) if (gpu_bigmem_flag > 0)
+    ! nothing to do
 #elif defined(_OPENACC)
-!$acc enter data copyin(cmat) if (gpu_bigmem_flag > 0)
+!$acc update device(cmat) if (gpu_bigmem_flag > 0)
 #endif
   endif
 

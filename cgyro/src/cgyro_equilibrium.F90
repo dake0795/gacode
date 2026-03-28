@@ -266,36 +266,20 @@ subroutine cgyro_equilibrium
 
   enddo
 
-  do itor=nt1,nt2
-   select case (stream_term)
-   case (1)
-     if (itor == 0) then
-        omega_stream(:,1,itor) = stream_factor*omega_stream(:,1,itor)
-        omega_trap(:,1,itor) = stream_factor*omega_trap(:,1,itor)
-     endif
-   case (2)
-     if (itor > 0) then
-        omega_stream(:,1,itor) = stream_factor*omega_stream(:,1,itor)
-        omega_trap(:,1,itor) = stream_factor*omega_trap(:,1,itor)
-     endif
-   case (12)
-     omega_stream(:,1,itor) = stream_factor*omega_stream(:,1,itor)
-     omega_trap(:,1,itor) = stream_factor*omega_trap(:,1,itor)
-   case (3)
-     if (itor == 0 .and. n_species > 1) then
-        omega_stream(:,2,itor) = stream_factor*omega_stream(:,2,itor)
-        omega_trap(:,2,itor) = stream_factor*omega_trap(:,2,itor)
-     endif
-   case (4)
-     if (itor > 0 .and. n_species > 1) then
-        omega_stream(:,2,itor) = stream_factor*omega_stream(:,2,itor)
-        omega_trap(:,2,itor) = stream_factor*omega_trap(:,2,itor)
-     endif
-   case (34)
-     omega_stream(:,2,itor) = stream_factor*omega_stream(:,2,itor)
-     omega_trap(:,2,itor) = stream_factor*omega_trap(:,2,itor)
-   end select
-  enddo
+  ! Scale factors for testing effects of different GK terms
+  if (scale_index > 0) then
+     is = scale_index
+     do itor=nt1,nt2
+        omega_stream(:,is,itor) = scale_stream*omega_stream(:,is,itor)
+        omega_trap(:,is,itor)   = scale_trap*omega_trap(:,is,itor)
+     enddo
+     ! All drifts are modified
+     omega_rdrift(:,is)   = scale_drift*omega_rdrift(:,is)
+     omega_adrift(:,is)   = scale_drift*omega_adrift(:,is)
+     omega_aprdrift(:,is) = scale_drift*omega_aprdrift(:,is)
+     omega_cdrift(:,is)   = scale_drift*omega_cdrift(:,is)
+     omega_cdrift_r(:,is) = scale_drift*omega_cdrift_r(:,is)
+  endif
 
 #if defined(OMPGPU)
 !$omp target enter data map(to:xi,omega_stream)

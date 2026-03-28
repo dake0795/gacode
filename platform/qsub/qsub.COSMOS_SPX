@@ -1,0 +1,23 @@
+#!/bin/bash
+
+bfile=$SIMDIR/batch.src
+
+# we always use omp==24, and request 48 HT-cores
+# and 4 MPI processes per node
+
+let nodes=$nmpi/4
+
+echo "#!/bin/bash -l" > $bfile
+echo "#SBATCH --exclusive" >> $bfile
+echo "#SBATCH -N $nodes" >> $bfile
+echo "#SBATCH -n $nmpi" >> $bfile
+echo "#SBATCH -c 48" >> $bfile
+echo "#SBATCH -t $WALLTIME" >> $bfile
+echo "#SBATCH -J $LOCDIR" >> $bfile
+echo "#SBATCH -o $SIMDIR/batch.out" >> $bfile
+echo "#SBATCH -e $SIMDIR/batch.err" >> $bfile
+if [ "$QUEUE" != "null_queue" ] ; then
+echo "#SBATCH --reservation=$QUEUE" >> $bfile
+fi
+
+echo "$CODE -e $LOCDIR -n $nmpi -nomp 24 -p $SIMROOT" >> $bfile 

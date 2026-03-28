@@ -79,25 +79,37 @@ then
   echo 
   echo "         --converge"
   echo "         Check convergence"
-  echo 
+  echo
   echo "         --db"
-  echo "         Database tool"
-  echo 
+  echo "         Database manager"
+  echo
+  echo "         --ml"
+  echo "         Machine learning tool"
+  echo
+  echo "         --dbplot"
+  echo "         Interactive database plotter"
+  echo
   echo "         --json"
-  echo "         Input manager and converter"
-  echo 
+  echo "         Export simulation data (JSON, TGLF, IMAS)"
+  echo
   echo "         --dmd"
   echo "         DMD analysis"
-  echo 
+  echo
   echo "         --c"
-  echo "         Cleanup"
-  echo 
+  echo "         Clean/copy utility (clean, copy)"
+  echo
   echo "         --pre"
-  echo "         XGYRO proprocessor"
+  echo "         Input manager (create/modify input.cgyro)"
   echo 
   echo "         --pert"
   echo "         Helper to create input.xgyro via perturbations"
-  
+  echo
+  echo "         --skew"
+  echo "         Plot extended ballooning mode structure"
+  echo
+  echo "         --loc"
+  echo "         Local parameter extraction (locpargen wrapper)"
+
   exit 1
 fi
 #=============================================================
@@ -148,6 +160,10 @@ while [ $# -gt 0 ] ; do
 
   --db) $UTIL_DIR/cgyro_db $uarg ; exit 0 ;;
 
+  --ml) $UTIL_DIR/cgyro_ml $uarg ; exit 0 ;;
+
+  --dbplot) $UTIL_DIR/cgyro_dbplot $uarg ; exit 0 ;;
+
   --dmd) $UTIL_DIR/cgyro_dmd $uarg ; exit 0 ;;
 
   --json) $UTIL_DIR/cgyro_json $uarg ; exit 0 ;;
@@ -157,6 +173,10 @@ while [ $# -gt 0 ] ; do
   --pre) $UTIL_DIR/cgyro_pre $uarg ; exit 0 ;;
 
   --pert) $UTIL_DIR/cgyro_pert $uarg ; exit 0 ;;
+
+  --skew) $UTIL_DIR/cgyro_skew $uarg ; exit 0 ;;
+
+  --loc) $UTIL_DIR/cgyro_loc $uarg ; exit 0 ;;
 
   -p) shift ; SIMROOT=$1 ;;
 

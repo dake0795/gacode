@@ -18,11 +18,23 @@ subroutine cgyro_nl_dealias_init
   implicit none
 
   integer :: itor,l0,l,p,m,l0_max,nt1_nz
+  integer :: iex,ir,it,i,panel,npanel,nex
+  real :: phase
+  integer :: max_pvec_count
   ! max_l0 = box_size*nt2
   integer :: pvec_count(box_size*nt2) !local, temp copy
+  integer :: dealias_iex(-3:3)
+  integer, dimension(:), allocatable :: dealias_fex_ir
+  integer, dimension(:), allocatable :: dealias_fex_it
+  complex, dimension(:), allocatable :: dealias_fex_ph
+  integer, dimension(:), allocatable :: dealias_pvec_count
+  integer, dimension(:,:), allocatable :: dealias_pvec
 
   ! Wavenumber M from CGYRO paper
   m = n_radial/2
+
+  ! Phase factor (JC: is q*sign_qs correct?)
+  phase = 2.0*pi*(q*sign_qs)/box_size
 
   if (nt1==0) then
     ! don't need pvec for itor==0
@@ -55,36 +67,6 @@ subroutine cgyro_nl_dealias_init
       enddo
   enddo
 
-  ! pre-compute pvec vectors, since they are re-used often
-  l0_max = box_size*nt2
-  if (l0_max==0) l0_max=1 ! need a valid array, even if not used
-
-  ! allocate eventual itor==0, too, to make it easier to use
-  allocate(dealias_pvec_count(l0_max,nt1:nt2))
-  allocate(dealias_pvec(l0_max,max_pvec_count,nt1:nt2))
-
-  ! now do the full compute on global buffers
-  ! cheap, since done only once, do on CPU
-  do itor=nt1_nz,nt2 ! we can leave eventual itor==0 unitialized, not used
-      ! Total number of ballooning angles for finite-n ballooning mode
-      l0 = box_size*itor
-
-      dealias_pvec_count(:,itor) = 0
-
-      ! Sort p indices by ballooning angle index l
-      do p=-m,m-1
-        l = mod(mod(p,l0)+l0,l0)+1
-        dealias_pvec_count(l,itor) = dealias_pvec_count(l,itor)+1
-        dealias_pvec(l,dealias_pvec_count(l,itor),itor) = p
-      enddo
-  enddo
-
-#if defined(OMPGPU)
-!$omp target enter data map(to:dealias_pvec_count,dealias_pvec)
-#elif defined(_OPENACC)
-!$acc enter data copyin(dealias_pvec_count,dealias_pvec)
-#endif
-
   ! need intermediate buffers for uniform compute
   ! required for GPU kernels, but will keep for CPU as well
 
@@ -94,17 +76,141 @@ subroutine cgyro_nl_dealias_init
   if (n_field>nv_loc) then
      allocate(inraw_dealias(n_radial,n_theta,n_field,nt1:nt2))
      allocate(outraw_dealias(n_radial,n_theta,n_field,nt1:nt2))
-     allocate(fex_dealias(n_theta*max_pvec_count,n_field,nt1:nt2))
   else
      allocate(inraw_dealias(n_radial,n_theta,nv_loc,nt1:nt2))
      allocate(outraw_dealias(n_radial,n_theta,nv_loc,nt1:nt2))
-     allocate(fex_dealias(n_theta*max_pvec_count,nv_loc,nt1:nt2))
   endif
 #if defined(OMPGPU)
-!$omp target enter data map(alloc:inraw_dealias,outraw_dealias,fex_dealias)
+!$omp target enter data map(alloc:inraw_dealias,outraw_dealias)
 #elif defined(_OPENACC)
-!$acc enter data create(inraw_dealias,outraw_dealias,fex_dealias)
+!$acc enter data create(inraw_dealias,outraw_dealias)
 #endif
+
+  allocate(dealias_fex_ir(n_theta*max_pvec_count))
+  allocate(dealias_fex_it(n_theta*max_pvec_count))
+  allocate(dealias_fex_ph(n_theta*max_pvec_count))
+
+  allocate(dealias_raw_ir(n_radial,n_theta,-3:3,nt1:nt2))
+  allocate(dealias_raw_it(n_radial,n_theta,-3:3,nt1:nt2))
+  allocate(dealias_raw_ph(n_radial,n_theta,-3:3,nt1:nt2))
+
+  ! pre-compute pvec vectors, since they are re-used often
+  l0_max = box_size*nt2
+  if (l0_max==0) l0_max=1 ! need a valid array, even if not used
+
+  ! allocate eventual itor==0, too, to make it easier to use
+  allocate(dealias_pvec_count(l0_max))
+  allocate(dealias_pvec(l0_max,max_pvec_count))
+
+  ! now do the full compute on global buffers
+  ! cheap, since done only once, do on CPU single threaded
+  do itor=nt1_nz,nt2 ! we can leave eventual itor==0 unitialized, not used
+      ! Total number of ballooning angles for finite-n ballooning mode
+      l0 = box_size*itor
+
+      dealias_pvec_count(:) = 0
+
+      ! Sort p indices by ballooning angle index l
+      do p=-m,m-1
+        l = mod(mod(p,l0)+l0,l0)+1
+        dealias_pvec_count(l) = dealias_pvec_count(l)+1
+        dealias_pvec(l,dealias_pvec_count(l)) = p
+      enddo
+
+      ! Construct ballooning modes
+      ! all _ex quantities refer to extended angle
+      ! nex = total number of points along extended angle
+      ! iex = extended angle index
+      do l=1,l0
+       npanel = dealias_pvec_count(l)
+       nex = n_theta*npanel
+       do panel=1,npanel
+        do it=1,n_theta
+           p = dealias_pvec(l,panel)
+           if (sign_qs > 0.0) then 
+              ir = p+m+1
+           else
+              ir = n_radial-(p+m)
+           endif
+           iex = (panel-1)*n_theta+it
+           ! save indexes and phase
+           dealias_fex_ir(iex) = ir
+           dealias_fex_it(iex) = it
+           dealias_fex_ph(iex) = exp(-i_c*p*phase)
+        enddo
+       enddo ! do panel
+       do iex=1,nex
+       
+        do i=-3,-1
+          dealias_iex(i) = iex+i
+          if (dealias_iex(i) < 1) dealias_iex(i) = dealias_iex(i)+nex
+        enddo 
+        dealias_iex(0) = iex
+        do i=1,3
+          dealias_iex(i) = iex+i
+          if (dealias_iex(i) > nex) dealias_iex(i) = dealias_iex(i)-nex
+        enddo 
+
+        ! iex = (panel-1)*n_theta+it
+        ! p = pvec(l,panel,itor-itor_offset)
+        ! ir = p+m+1
+        it = 1+modulo(iex-1,n_theta)
+        panel = 1+(iex-1)/n_theta
+        p = dealias_pvec(l,panel)
+        if (sign_qs > 0.0) then
+           ir = p+m+1
+        else
+           ir = n_radial-(p+m)
+        endif
+        ! now save the indexes and phases to global space
+        do i=-3,3
+          dealias_raw_ir(ir,it,i,itor) = dealias_fex_ir(dealias_iex(i))
+          dealias_raw_it(ir,it,i,itor) = dealias_fex_it(dealias_iex(i))
+          dealias_raw_ph(ir,it,i,itor) = dealias_fex_ph(dealias_iex(i))
+        enddo
+       enddo ! do iex
+      enddo ! do l
+  enddo
+
+  if (nt1==0) then
+    ! itor=0 special case
+    ! Pure periodicity
+    itor = 0
+    do it=1,n_theta
+      do ir=1,n_radial
+        do i=-3,-1
+          dealias_raw_it(ir,it,i,itor) = it+i
+          if (dealias_raw_it(ir,it,i,itor) < 1) then
+            dealias_raw_it(ir,it,i,itor) = dealias_raw_it(ir,it,i,itor)+n_theta
+          endif
+        enddo 
+        dealias_raw_it(ir,it,i,itor) = it
+        do i=1,3
+          dealias_raw_it(ir,it,i,itor) = it+i
+          if (dealias_raw_it(ir,it,i,itor) > n_theta) then
+            dealias_raw_it(ir,it,i,itor) = dealias_raw_it(ir,it,i,itor)-n_theta
+          endif
+        enddo 
+        do i=-3,3
+          dealias_raw_ir(ir,it,i,itor) = ir
+          dealias_raw_ph(ir,it,i,itor) = 1.0
+        enddo
+      enddo
+    enddo
+  endif
+
+#if defined(OMPGPU)
+!$omp target enter data map(to:dealias_raw_ir,dealias_raw_it,dealias_raw_ph)
+#elif defined(_OPENACC)
+!$acc enter data copyin(dealias_raw_ir,dealias_raw_it,dealias_raw_ph)
+#endif
+
+  deallocate(dealias_fex_ph)
+  deallocate(dealias_fex_it)
+  deallocate(dealias_fex_ir)
+
+  deallocate(dealias_pvec_count)
+  deallocate(dealias_pvec)
 
 end subroutine cgyro_nl_dealias_init
 
@@ -114,205 +220,99 @@ end subroutine cgyro_nl_dealias_init
 ! fraw (input unfiltered field) array
 ! f    (output filtered field) array
 
-! itor=0 special case
-! Pure periodicity 
-recursive subroutine impfilter5_i0(&
-                    n_theta,n_radial,n_3d,a0,a1,a2,a3,fraw,f)
-  implicit none
-
-  integer, intent(in) :: n_theta,n_radial,n_3d
-  real, intent(in) :: a0,a1,a2,a3
-  ! both are (n_radial,n_theta,:)
-  complex, intent(in) :: fraw(:,:,:)
-  complex, intent(out):: f(:,:,:)
-  !--------
-  integer :: it,ir,i3d
-  integer :: jm1,jm2,jm3,jp1,jp2,jp3
-
-#if defined(OMPGPU)
-!$omp target teams distribute parallel do collapse(3) &
-!$omp&         private(jm1,jm2,jm3,jp1,jp2,jp3)
-#elif defined(_OPENACC)
-!$acc parallel loop gang vector collapse(3) &
-!$acc&         private(jm1,jm2,jm3,jp1,jp2,jp3) &
-!$acc&         present(fraw,f)
-#else
-!$omp parallel do collapse(3) &
-!$omp&         private(jm1,jm2,jm3,jp1,jp2,jp3)
-#endif
-  do i3d=1,n_3d
-    do it=1,n_theta
-      do ir=1,n_radial
-        jm1 = it-1; if (jm1 < 1) jm1 = n_theta
-        jm2 = it-2; if (jm2 < 1) jm2 = jm2+n_theta
-        jm3 = it-3; if (jm3 < 1) jm3 = jm3+n_theta
-        jp1 = it+1; if (jp1 > n_theta) jp1 = 1
-        jp2 = it+2; if (jp2 > n_theta) jp2 = jp2-n_theta
-        jp3 = it+3; if (jp3 > n_theta) jp3 = jp3-n_theta
-
-        ! Pure periodicity 
-        f(ir,it,i3d) = &
-                a0*fraw(ir,it,i3d) + &
-                a1*(fraw(ir,jm1,i3d) + fraw(ir,jp1,i3d)) + &
-                a2*(fraw(ir,jm2,i3d) + fraw(ir,jp2,i3d)) + &
-                a3*(fraw(ir,jm3,i3d) + fraw(ir,jp3,i3d))
-      enddo
-    enddo
-  enddo
-end subroutine impfilter5_i0
-
-! guaranteed that itor/=0
 subroutine impfilter5_n0(&
-                    n_theta,n_radial,n_3d,nt1,nt2,max_pvec_count,&
-                    a0,a1,a2,a3,m,phase,box_size,sign_qs,&
-                    pvec_count,pvec,&
-                    fraw,fex,f,itor_offset)
+                    n_theta,n_radial,n_3d,nt1,nt2,&
+                    a0,a1,a2,a3,&
+                    fraw,f,itor_offset)
 
+  use cgyro_globals, ONLY: dealias_raw_ir,dealias_raw_it,dealias_raw_ph
   implicit none
 
   integer, intent(in) :: n_theta,n_radial,n_3d
   integer, intent(in) :: nt1,nt2
-  integer, intent(in) :: max_pvec_count
   real, intent(in) :: a0,a1,a2,a3
-  integer, intent(in) :: m
-  real, intent(in) :: phase
-  integer, intent(in) :: box_size,sign_qs
-  integer, intent(in) :: pvec_count(:,:),pvec(:,:,:)
   ! both are (n_radial,n_theta,:,itor_offset:(nt2-itor_offset))
   complex, intent(in) :: fraw(:,:,:,:)
-  complex, intent(inout) :: fex(:,:,:)
   complex, intent(out):: f(:,:,:,:)
   integer, intent(in) :: itor_offset
   ! -------------
   integer :: itor,i3d
-  integer :: ir,it,panel,iex
-  integer :: l0,l,p,nex,npanel
-  integer :: jm1,jm2,jm3,jp1,jp2,jp3
-  complex, parameter :: i_c  = (0.0,1.0)
-  complex :: fval
+  integer :: ir,it
+  complex :: fval,my_ph
 
 #if defined(OMPGPU)
-!$omp target teams distribute collapse(2) default(firstprivate)&
-!$omp&         shared(pvec_count,pvec,fraw,fex,f)
-#elif defined(_OPENACC)
-!$acc parallel loop gang collapse(2) &
-!$acc&         present(pvec_count,pvec,fraw,fex,f) &
-!$acc&         private(l0,l,npanel,nex)
-#else
-!$omp parallel do collapse(2) default(firstprivate)&
-!$omp&         shared(pvec_count,pvec,fraw,fex,f)
-#endif
+!$omp target teams distribute parallel do collapse(3) &
+!$omp&         private(fval,my_ph,i3d)
   do itor=nt1,nt2
-    do i3d=1,n_3d
-
-  l0 = itor*box_size
-
-  ! Construct ballooning modes
-  ! all _ex quantities refer to extended angle
-  ! nex = total number of points along extended angle
-  ! iex = extended angle index
-#if defined(OMPGPU)
-  ! nothing to do, no omp seq avail
+   do it=1,n_theta
+    do ir=1,n_radial
+     do i3d=1,n_3d  ! do sequentially, good for GPUs
 #elif defined(_OPENACC)
-!$acc loop seq &
-!$acc&         private(npanel,nex)
+!$acc parallel loop gang vector collapse(3) &
+!$acc&         private(fval,my_ph,i3d) &
+!$acc&         present(fraw,f,dealias_raw_ir,dealias_raw_it,dealias_raw_ph)
+  do itor=nt1,nt2
+   do it=1,n_theta
+    do ir=1,n_radial
+     do i3d=1,n_3d  ! do sequentially, good for GPUs
+#else
+!$omp parallel do collapse(2) &
+!$omp&         private(fval,my_ph,ir,it)
+  do itor=nt1,nt2
+   do i3d=1,n_3d
+    do it=1,n_theta
+     do ir=1,n_radial
 #endif
-  do l=1,l0
-     npanel = pvec_count(l,itor-itor_offset)
-     nex = n_theta*npanel
-#if defined(OMPGPU)
-!$omp parallel do collapse(2) default(firstprivate)&
-!$omp&         shared(fraw,fex,pvec)
-#elif defined(_OPENACC)
-!$acc loop vector collapse(2) &
-!$acc&         private(p,it,iex,ir)
-#endif
-     do panel=1,npanel
-        do it=1,n_theta
-           p = pvec(l,panel,itor-itor_offset)
-           if (sign_qs > 0.0) then 
-              ir = p+m+1
-           else
-              ir = n_radial-(p+m)
-           endif
-           iex = (panel-1)*n_theta+it
-           ! add phase 
-           fex(iex,i3d,itor-itor_offset) = fraw(ir,it,i3d,itor-itor_offset)*exp(-i_c*p*phase)
-        enddo
-     enddo
-#if defined(OMPGPU)
-!$omp parallel do default(firstprivate)&
-!$omp&         shared(f,fex,pvec)
-#elif defined(_OPENACC)
-!$acc loop vector &
-!$acc&         private(jm1,jm2,jm3,jp1,jp2,jp3) &
-!$acc&         private(it,panel,p,ir,fval)
-#endif
-     do iex=1,nex
-        
-        jm1 = iex-1; if (jm1 < 1) jm1 = nex
-        jm2 = iex-2; if (jm2 < 1) jm2 = jm2+nex
-        jm3 = iex-3; if (jm3 < 1) jm3 = jm3+nex
-        jp1 = iex+1; if (jp1 > nex) jp1 = 1
-        jp2 = iex+2; if (jp2 > nex) jp2 = jp2-nex
-        jp3 = iex+3; if (jp3 > nex) jp3 = jp3-nex
-
-        ! iex = (panel-1)*n_theta+it
-        ! p = pvec(l,panel,itor-itor_offset)
-        ! ir = p+m+1
-        it = 1+modulo(iex-1,n_theta)
-        panel = 1+(iex-1)/n_theta
-        p = pvec(l,panel,itor-itor_offset)
-        if (sign_qs > 0.0) then
-           ir = p+m+1
-        else
-           ir = n_radial-(p+m)
-        endif
-
-        ! filter
+        ! ir == dealias_raw_ir(ir,it,0,itor)
+        ! it == dealias_raw_it(ir,it,0,itor)
+        my_ph = dealias_raw_ph(ir,it,0,itor)
         fval = &
-             a0*fex(iex,i3d,itor-itor_offset) + &
-             a1*(fex(jm1,i3d,itor-itor_offset)+fex(jp1,i3d,itor-itor_offset)) + &           
-             a2*(fex(jm2,i3d,itor-itor_offset)+fex(jp2,i3d,itor-itor_offset)) + &           
-             a3*(fex(jm3,i3d,itor-itor_offset)+fex(jp3,i3d,itor-itor_offset))            
+             a0*(&
+                 fraw(ir,it,i3d,itor-itor_offset)*&
+                 my_ph&
+                ) + &
+             a1*(&
+                 fraw(dealias_raw_ir(ir,it,-1,itor),dealias_raw_it(ir,it,-1,itor),i3d,itor-itor_offset)*&
+                 dealias_raw_ph(ir,it,-1,itor) +&
+                 fraw(dealias_raw_ir(ir,it,+1,itor),dealias_raw_it(ir,it,+1,itor),i3d,itor-itor_offset)*&
+                 dealias_raw_ph(ir,it,+1,itor) &
+                ) + &
+             a2*(&
+                 fraw(dealias_raw_ir(ir,it,-2,itor),dealias_raw_it(ir,it,-2,itor),i3d,itor-itor_offset)*&
+                 dealias_raw_ph(ir,it,-2,itor) +&
+                 fraw(dealias_raw_ir(ir,it,+2,itor),dealias_raw_it(ir,it,+2,itor),i3d,itor-itor_offset)*&
+                 dealias_raw_ph(ir,it,+2,itor) &
+                ) + &
+             a3*(&
+                 fraw(dealias_raw_ir(ir,it,-3,itor),dealias_raw_it(ir,it,-3,itor),i3d,itor-itor_offset)*&
+                 dealias_raw_ph(ir,it,-3,itor) +&
+                 fraw(dealias_raw_ir(ir,it,+3,itor),dealias_raw_it(ir,it,+3,itor),i3d,itor-itor_offset)*&
+                 dealias_raw_ph(ir,it,+3,itor) &
+                )
 
         ! dephase
-        f(ir,it,i3d,itor-itor_offset) = fval*exp(i_c*p*phase)
-
+        f(ir,it,i3d,itor-itor_offset) = fval*conjg(my_ph)
      enddo
-  enddo
-
+    enddo
    enddo !do i3d=1,n_3d
   enddo !do itor=nt1,nt2
 end subroutine impfilter5_n0
 
 subroutine impfilter5(&
                     n_theta,n_radial,n_3d,nt1,nt2,&
-                    max_pvec_count,&
                     dealias_order,dealias,&
-                    box_size,q,sign_qs,&
-                    pvec_count,pvec,&
-                    fraw,fex,f)
+                    fraw,f)
 
   implicit none
 
   integer, intent(in) :: n_theta,n_radial,n_3d,nt1,nt2
-  integer, intent(in) :: max_pvec_count
   integer, intent(in) :: dealias_order
   real, intent(in) :: dealias
-  integer, intent(in) :: box_size
-  real, intent(in) :: q
-  integer, intent(in) :: sign_qs
-  integer, intent(in) :: pvec_count(:,:),pvec(:,:,:)
   ! both are (n_radial,n_theta,:,1:(nt2-nt1+1))
   complex, intent(in) :: fraw(:,:,:,:)
-  complex, intent(inout) :: fex(:,:,:)
   complex, intent(out):: f(:,:,:,:)
   ! -----------
   real :: a0,a1,a2,a3
-  integer :: m,nstart
-  real :: phase
-  real, parameter :: pi = 3.1415926535897932
 
   ! Maximally flat filters (3, 5, or 7-point):
   !
@@ -344,26 +344,9 @@ subroutine impfilter5(&
      a3 = (1/64.0)*dealias
   endif
 
-  nstart = nt1
-  if (nt1 == 0) then
-     call impfilter5_i0(n_theta,n_radial,n_3d,&
+  call impfilter5_n0(n_theta,n_radial,n_3d,nt1,nt2,&
                         a0,a1,a2,a3,&
-                        fraw(:,:,:,1),f(:,:,:,1))
-     nstart = nstart+1
-  endif
-
-  if (nstart<=nt2) then
-     ! Wavenumber M from CGYRO paper
-     m = n_radial/2
-
-     ! Phase factor (JC: is q*sign_qs correct?)
-     phase = 2.0*pi*(q*sign_qs)/box_size
-
-     call impfilter5_n0(n_theta,n_radial,n_3d,nstart,nt2,max_pvec_count,&
-                        a0,a1,a2,a3,m,phase,box_size,sign_qs,&
-                        pvec_count,pvec,&
-                        fraw,fex,f,nt1-1)
-  endif
+                        fraw,f,nt1-1)
 
 end subroutine impfilter5
 
@@ -417,11 +400,9 @@ subroutine hx_dealias
     enddo
    enddo
    ! Extended-angle dealiasing filter
-   call impfilter5(n_theta,n_radial,nv_loc,nt1,nt2,max_pvec_count,&
+   call impfilter5(n_theta,n_radial,nv_loc,nt1,nt2,&
                   dealias_order,dealias,&
-                  box_size,q,sign_qs,&
-                  dealias_pvec_count,dealias_pvec,&
-                  inraw_dealias,fex_dealias,outraw_dealias)
+                  inraw_dealias,outraw_dealias)
 
   endif
 end subroutine hx_dealias
@@ -476,11 +457,9 @@ subroutine field_dealias
     enddo
    enddo
    ! Extended angle dealiasing filter
-   call impfilter5(n_theta,n_radial,n_field,nt1,nt2,max_pvec_count,&
+   call impfilter5(n_theta,n_radial,n_field,nt1,nt2,&
                   dealias_order,dealias,&
-                  box_size,q,sign_qs,&
-                  dealias_pvec_count,dealias_pvec,&
-                  inraw_dealias,fex_dealias,outraw_dealias)
+                  inraw_dealias,outraw_dealias)
 
   endif
 end subroutine field_dealias

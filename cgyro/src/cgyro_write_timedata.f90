@@ -108,29 +108,37 @@ subroutine cgyro_write_timedata
   !
   has_balloon = (n_toroidal == 1) .and. ((nt1 > 0)  .and. (box_size == 1))
   has_zf      = zf_test_mode > 0
-  if ( (i_proc==0) .and. (has_zf .or. has_balloon) ) then
+  if (i_proc == 0 .and. has_zf) then
      ! NOTE: Only process the first my_toroidal
-
      do i_field=1,n_field
-
         do ir=1,n_radial
            do it=1,n_theta
               ftemp(it,ir) = field(i_field,ic_c(ir,it),nt1)
            enddo
         enddo
-
-        a_norm = 1.0
-        if (has_balloon) then
-           !if (i_field == 1) then
-           !   it = maxloc(abs(ftemp(:,n_radial/2+1)),dim=1)
-           !   a_norm = ftemp(it,n_radial/2+1)
-           !endif
-           call extended_ang(ftemp)
-        endif
-
-        call write_binary(trim(path)//binfile_fieldb(i_field),&
-             ftemp(:,:)/a_norm,size(ftemp))
+        call write_binary(trim(path)//binfile_fieldb(i_field),ftemp(:,:),size(ftemp))
      enddo
+  endif
+  if (i_proc == 0 .and. has_balloon) then
+     ! NOTE: Only process the first my_toroidal
+     do i_field=1,n_field
+        do ir=1,n_radial
+           do it=1,n_theta
+              ftemp(it,ir) = field(i_field,ic_c(ir,it),nt1)
+           enddo
+        enddo
+        call extended_ang(ftemp)
+
+        call write_binary(trim(path)//binfile_fieldb(i_field),ftemp(:,:),size(ftemp))
+     enddo
+     do ir=1,n_radial
+        do it=1,n_theta
+           ftemp(it,ir) = epar(ic_c(ir,it),nt1)
+        enddo
+     enddo
+     call extended_ang(ftemp)
+
+     call write_binary(trim(path)//binfile_fieldb(4),ftemp(:,:),size(ftemp))
   endif
   !---------------------------------------------------------------
 
