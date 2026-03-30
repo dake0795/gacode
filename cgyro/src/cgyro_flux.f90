@@ -37,7 +37,7 @@ subroutine cgyro_flux
   integer :: l,icl
   real :: dv,cn
   real :: vpar
-  complex, dimension(0:n_global,n_field) :: prod1,prod2,prod3
+  complex, dimension(0:n_global,n_field) :: prod1,prod2,prod3,prod4
   real :: dvr
   real :: erot
   real :: flux_norm
@@ -46,8 +46,8 @@ subroutine cgyro_flux
   real :: u
 
 !$omp parallel do private(iv_loc,iv,is,ix,ie,dv,vpar,ic,ir,it,erot,cprod,cn) &
-!$omp&            private(prod1,prod2,prod3,l,icl,dvr,u,flux_norm) &
-!$omp&            shared(moment_loc,gflux_loc,cflux_loc)
+!$omp&            private(prod1,prod2,prod3,prod4,l,icl,dvr,u,flux_norm) &
+!$omp&            shared(moment_loc,gflux_loc,cflux_loc,gflux_mom_loc,cflux_mom_loc)
   do itor=nt1,nt2
 
      !-----------------------------------------------------
@@ -106,6 +106,9 @@ subroutine cgyro_flux
      !-------------------------------------------------------------
 
      gflux_loc(:,:,:,:,itor) = 0.0
+     if (momentum_print_flag == 1) then
+        gflux_mom_loc(:,:,:,:,itor) = 0.0
+     endif
 
      iv_loc = 0
      do iv=nv1,nv2
@@ -131,6 +134,7 @@ subroutine cgyro_flux
            prod1 = 0.0 
            prod2 = 0.0
            prod3 = 0.0
+           prod4 = 0.0
 
            ! Global flux coefficients (complex coefficients required to compute radial profile)
            do l=0,n_global
@@ -146,6 +150,10 @@ subroutine cgyro_flux
                  prod3(l,:) = prod3(l,:) &
                       -cap_h_c_dot(ic,iv_loc,itor)*conjg(jvec_c(:,icl,iv_loc,itor)*field(:,icl,itor)) &
                       +cap_h_c(ic,iv_loc,itor)*conjg(jvec_c(:,icl,iv_loc,itor)*field_dot(:,icl,itor))
+                 if (momentum_print_flag == 1) then
+                    prod4(l,:) = prod4(l,:) &
+                          +i_c*cap_h_c(ic,iv_loc,itor)*conjg(i_c*jmvec_c(:,icl,iv_loc,itor)*field(:,icl,itor))
+                 endif  
               endif
               if (ir+l <= n_radial) then
                  icl = ic_c(ir+l,it)
@@ -156,6 +164,10 @@ subroutine cgyro_flux
                  prod3(l,:) = prod3(l,:) &
                       -conjg(cap_h_c_dot(ic,iv_loc,itor))*jvec_c(:,icl,iv_loc,itor)*field(:,icl,itor) &
                       +conjg(cap_h_c(ic,iv_loc,itor))*jvec_c(:,icl,iv_loc,itor)*field_dot(:,icl,itor)
+                 if (momentum_print_flag == 1) then
+                    prod4(l,:) = prod4(l,:) &
+                         -i_c*conjg(cap_h_c(ic,iv_loc,itor))*i_c*jmvec_c(:,icl,iv_loc,itor)*field(:,icl,itor)
+                 endif
               endif
 
            enddo
@@ -168,6 +180,17 @@ subroutine cgyro_flux
 
            ! 2. Energy flux : Q_a
            gflux_loc(:,is,2,:,itor) = gflux_loc(:,is,2,:,itor)+prod1(:,:)*dvr*erot
+
+           ! Extra momentum-flux outputs
+           if (momentum_print_flag == 1) then
+              gflux_mom_loc(:,is,1,:,itor) = gflux_mom_loc(:,is,1,:,itor) + &
+                 (mach*bigr(it)/rmaj + btor(it)/bmag(it)*vpar) * &
+                 prod1(:,:) * dvr * bigr(it) * mass(is)
+              gflux_mom_loc(:,is,2,:,itor) = gflux_mom_loc(:,is,2,:,itor) + &
+                 prod2(:,:) * dvr * bigr(it) * mass(is)
+              gflux_mom_loc(:,is,3,:,itor) = gflux_mom_loc(:,is,3,:,itor) + &
+                 prod4(:,:) * dvr * bigr(it) * mass(is)
+           endif
 
            prod1(:,:) = prod1(:,:)*(mach*bigr(it)/rmaj+btor(it)/bmag(it)*vpar)+prod2(:,:)
 
@@ -188,6 +211,14 @@ subroutine cgyro_flux
         cflux_loc(:,:,:,itor) = cflux_loc(:,:,:,itor)+2*sin(u)*real(gflux_loc(l,:,:,:,itor))/u
      enddo
 
+     if (momentum_print_flag == 1) then
+        cflux_mom_loc(:,:,:,itor) = real(gflux_mom_loc(0,:,:,:,itor))
+        do l=1,n_global
+           u = 2*pi*l*x_fraction
+           cflux_mom_loc(:,:,:,itor) = cflux_mom_loc(:,:,:,itor)+2*sin(u)*real(gflux_mom_loc(l,:,:,:,itor))/u
+        enddo
+     endif
+
      !-----------------------------------------------------
      ! 3. Renormalize fluxes to GB or quasilinear forms
      !~----------------------------------------------------
@@ -207,6 +238,11 @@ subroutine cgyro_flux
         gflux_loc(:,:,:,:,itor) = gflux_loc(:,:,:,:,itor)/flux_norm 
         cflux_loc (:,:,:,itor)  = cflux_loc(:,:,:,itor)/flux_norm 
 
+        if (momentum_print_flag == 1) then
+           gflux_mom_loc(:,:,:,:,itor) = gflux_mom_loc(:,:,:,:,itor) / flux_norm
+           cflux_mom_loc(:,:,:,itor)   = cflux_mom_loc(:,:,:,itor) / flux_norm
+        endif
+
      else
 
         ! Complete definition of fluxes (not exchange)
@@ -216,6 +252,14 @@ subroutine cgyro_flux
         ! GyroBohm normalizations
         gflux_loc(:,:,:,:,itor) = gflux_loc(:,:,:,:,itor)/rho**2
         cflux_loc(:,:,:,itor) = cflux_loc(:,:,:,itor)/rho**2
+
+        if (momentum_print_flag == 1) then
+           gflux_mom_loc(:,:,:,:,itor) = gflux_mom_loc(:,:,:,:,itor) * (k_theta_base*itor*rho)
+           cflux_mom_loc(:,:,:,itor)   = cflux_mom_loc(:,:,:,itor) * (k_theta_base*itor*rho)
+        
+           gflux_mom_loc(:,:,:,:,itor) = gflux_mom_loc(:,:,:,:,itor) / rho**2
+           cflux_mom_loc(:,:,:,itor)   = cflux_mom_loc(:,:,:,itor) / rho**2
+        endif
 
      endif
   enddo
@@ -249,6 +293,27 @@ subroutine cgyro_flux
        MPI_SUM, &
        NEW_COMM_1, &
        i_err)
+
+  ! Extra momentum-flux outputs
+
+  if (momentum_print_flag == 1) then
+
+     call MPI_ALLREDUCE(gflux_mom_loc, &
+          gflux_mom, &
+          size(gflux_mom), &
+          MPI_DOUBLE_COMPLEX, &
+          MPI_SUM, &
+          NEW_COMM_1, &
+          i_err)
+  
+     call MPI_ALLREDUCE(cflux_mom_loc, &
+          cflux_mom, &
+          size(cflux_mom), &
+          MPI_DOUBLE_PRECISION, &
+          MPI_SUM, &
+          NEW_COMM_1, &
+          i_err)
+  endif
 
   tave_step = tave_step + 1
   tave_max  = t_current

@@ -79,6 +79,7 @@ module cgyro_globals
   integer :: moment_print_flag
   integer :: gflux_print_flag
   integer :: field_print_flag
+  integer :: momentum_print_flag
   real :: amp0
   real :: amp
   real :: gamma_e
@@ -366,6 +367,7 @@ module cgyro_globals
   real, dimension(:,:,:,:), allocatable :: dvjvec_v
   real, dimension(:,:,:,:), allocatable :: jxvec_c
   real, dimension(:,:,:), allocatable :: upfac1,upfac2
+  real, dimension(:,:,:,:), allocatable :: jmvec_c
   !
   ! Fields
   real, dimension(:,:,:), allocatable :: fcoef
@@ -388,6 +390,10 @@ module cgyro_globals
   complex, dimension(:,:,:,:,:), allocatable :: gflux_loc
   complex, dimension(:,:,:,:,:), allocatable :: gflux
   real, dimension(:,:), allocatable :: cflux_tave, gflux_tave
+  real, dimension(:,:,:,:), allocatable :: cflux_mom_loc
+  real, dimension(:,:,:,:), allocatable :: cflux_mom
+  complex, dimension(:,:,:,:,:), allocatable :: gflux_mom_loc
+  complex, dimension(:,:,:,:,:), allocatable :: gflux_mom
   real :: tave_min, tave_max
   integer :: tave_step
   integer :: nflux

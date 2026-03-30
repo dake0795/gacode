@@ -133,6 +133,10 @@ subroutine cgyro_cleanup
   if(allocated(gflux_loc))           deallocate(gflux_loc)
   if(allocated(cflux_tave))          deallocate(cflux_tave)
   if(allocated(gflux_tave))          deallocate(gflux_tave)
+  if(allocated(cflux_mom_loc))       deallocate(cflux_mom_loc)
+  if(allocated(cflux_mom))           deallocate(cflux_mom)
+  if(allocated(gflux_mom_loc))       deallocate(gflux_mom_loc)
+  if(allocated(gflux_mom))           deallocate(gflux_mom)
   if(allocated(recv_status))         deallocate(recv_status)
   if(allocated(source)) then
       ccl_del_device(source)      
@@ -221,6 +225,9 @@ subroutine cgyro_cleanup
   endif
   if(allocated(jxvec_c))  then
      deallocate(jxvec_c)
+  endif
+  if(allocated(jmvec_c))  then
+     deallocate(jmvec_c)
   endif
   if(allocated(upfac1))   then
      ccl_del_device(upfac1)

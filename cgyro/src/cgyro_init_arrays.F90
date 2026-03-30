@@ -114,10 +114,36 @@ subroutine cgyro_init_arrays
                       /(k_perp(ic,itor)*rho)**2 &
                       * (2*bmag(it) * jloc_c(2,ic,itor) - jloc_c(1,ic,itor))
               endif
-           endif
-           
+           endif   
         endif
      enddo
+
+     ! Maxwell-stress factors for momentum flux 
+     if (momentum_print_flag == 1) then
+        do ic=1,nc
+           it = it_c(ic)
+           fac = rho * temp(is)/(z(is) * bmag(it)) * bpol(it)/bmag(it) &
+                 * 2.0 * energy(ie)*(1-xi(ix)**2) * k_x(ic,itor)
+           
+           jmvec_c(1,ic,iv_loc,itor) =  0.0
+            
+           if (n_field > 1) then
+              efac = -xi(ix)*vel2(ie)*vth(is)
+              jmvec_c(2,ic,iv_loc,itor) = efac * fac * jloc_c(3,ic,itor)
+              
+              if (n_field > 2) then
+                 if(itor == 0) then
+                    jmvec_c(3,ic,iv_loc,itor) = 0.0
+                 else
+                    jmvec_c(3,ic,iv_loc,itor) = fac * z(is)*bmag(it)/mass(is) &
+                          /(k_perp(ic,itor)*rho)**2 &
+                          * bmag(it) * jloc_c(2,ic,itor)
+                 endif
+              endif   
+           endif
+        enddo
+     endif
+
    enddo
   enddo
  

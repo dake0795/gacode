@@ -144,6 +144,7 @@ subroutine cgyro_check_memory(datafile)
      if (nonlinear_flag == 1) call cgyro_alloc_add(io,n_field*n_radial*n_jtheta*nv_loc*n_toroidal*8.0,'jvec_c_nl')
      call cgyro_alloc_add_4d(io,n_field,nc_loc_coll,nv,nt_loc,8,'jvec_v')
      call cgyro_alloc_add_4d(io,n_field,nc,nv_loc,nt_loc,8,'jxvec_c')
+     if (momentum_print_flag == 1) call cgyro_alloc_add_4d(io,n_field,nc,nv_loc,nt_loc,8,'jmvec_c')
      call cgyro_alloc_add_3d(io,nc,nv_loc,nt_loc,8,'upfac1')
      call cgyro_alloc_add_3d(io,nc,nv_loc,nt_loc,8,'upfac2')
 
