@@ -521,18 +521,22 @@ subroutine cgyro_nl_fftw_comm2_async_stress(itf)
   implicit none
 
   integer, intent(in) :: itf
-  integer :: ir,it,it_loc,itm,itl
+  integer :: ir,it,it_loc,itm,itl,itf2
   integer :: itor,mytor
   integer :: iltheta_min
   complex :: gval
 
   call timer_lib_in('nl_mem')
 
+  ! Zero all field slots except itf to avoid contamination from stale gpack data.
+  ! cgyro_nl_fftw sums over all n_field components weighted by jvec_c_nl, so
+  ! unused slots must be explicitly zeroed.
+
 #if defined(OMPGPU)
-!$omp target teams distribute parallel do simd collapse(4) &
+!$omp target teams distribute parallel do simd collapse(5) &
 !$omp&         private(itor,it,iltheta_min,mytor,gval)
 #elif defined(_OPENACC)
-!$acc parallel loop gang vector collapse(4) independent &
+!$acc parallel loop gang vector collapse(5) independent &
 !$acc&         private(itor,it,iltheta_min,mytor,gval) &
 !$acc&         present(field,gpack) &
 !$acc&         present(n_toroidal_procs,nt_loc,n_jtheta,nv_loc,nt1) &
@@ -540,24 +544,25 @@ subroutine cgyro_nl_fftw_comm2_async_stress(itf)
 !$acc&         copyin(itf) &
 !$acc&         default(none)
 #else
-!$omp parallel do collapse(3) &
+!$omp parallel do collapse(4) &
 !$omp&         private(it_loc,itor,mytor,it,ir,iltheta_min,gval)
 #endif
   do itm=1,n_toroidal_procs
    do itl=1,nt_loc
     do it_loc=1,n_jtheta
      do ir=1,n_radial
+      do itf2=1,n_field
        iltheta_min = 1+((itm-1)*nsplit)/nv_loc
        it = it_loc+iltheta_min-1
        itor = itl+(itm-1)*nt_loc
        gval = (0.0,0.0)
-       if (it <= n_theta) then
+       if (itf2 == itf .and. it <= n_theta) then
          mytor = nt1+itl-1
          ! ic_c(ir,it) = (ir-1)*n_theta+it
-         gval = field(itf,(ir-1)*n_theta+it,mytor)
+         gval = field(itf2,(ir-1)*n_theta+it,mytor)
        endif
-       ! else just padding
-       gpack(itf,ir,it_loc,itor) = gval
+       gpack(itf2,ir,it_loc,itor) = gval
+      enddo
      enddo
     enddo
    enddo
