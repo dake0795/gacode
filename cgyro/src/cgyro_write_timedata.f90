@@ -70,6 +70,16 @@ subroutine cgyro_write_timedata
      enddo
   endif
 
+  if (stress_print_flag == 1) then
+     ! Per-field nonlinear stress kernel {h, <chi_i>} velocity-integrated
+     do i_field=1,n_field
+        call cgyro_write_distributed_bcomplex(&
+             trim(path)//binfile_stress(i_field),&
+             size(stress_integrated(:,:,:,:,i_field)),&
+             stress_integrated(:,:,:,:,i_field))
+     enddo
+  endif
+
   if (field_print_flag == 1) then
      p_field = n_field
   else

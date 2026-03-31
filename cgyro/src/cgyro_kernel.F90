@@ -139,6 +139,8 @@ subroutine cgyro_kernel
 
        call timer_lib_in('io')
 
+       if (stress_print_flag .eq. 1) call cgyro_stress
+
        ! Write simulation data
        call cgyro_write_timedata
 

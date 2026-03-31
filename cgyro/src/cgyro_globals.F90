@@ -80,6 +80,7 @@ module cgyro_globals
   integer :: gflux_print_flag
   integer :: field_print_flag
   integer :: momentum_print_flag
+  integer :: stress_print_flag
   real :: amp0
   real :: amp
   real :: gamma_e
@@ -263,6 +264,8 @@ module cgyro_globals
        (/'bin.cgyro.kxky_phi ','bin.cgyro.kxky_apar','bin.cgyro.kxky_bpar'/)
   character(len=20), dimension(3) :: binfile_lky_flux = &
        (/'bin.cgyro.lky_flux_n','bin.cgyro.lky_flux_e','bin.cgyro.lky_flux_v'/)
+  character(len=21), dimension(3) :: binfile_stress = &
+       (/'bin.cgyro.stress_phi ','bin.cgyro.stress_apar','bin.cgyro.stress_bpar'/)
   integer, parameter :: io=1
   ! Restart tags
   character(len=8) :: fmt='(I2.2)'
@@ -337,6 +340,9 @@ module cgyro_globals
   !
   ! Distributions
   complex, dimension(:,:,:,:), allocatable :: rhs
+  complex, dimension(:,:,:,:), allocatable :: stress
+  complex, dimension(:,:,:,:,:), allocatable :: stress_integrated
+  complex, dimension(:,:,:,:,:), allocatable :: stress_integrated_loc
   complex, dimension(:,:,:), allocatable :: h_x
   complex, dimension(:,:,:), allocatable :: g_x
   complex, dimension(:,:,:), allocatable :: h0_x

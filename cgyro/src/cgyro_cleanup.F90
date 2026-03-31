@@ -137,6 +137,12 @@ subroutine cgyro_cleanup
   if(allocated(cflux_mom))           deallocate(cflux_mom)
   if(allocated(gflux_mom_loc))       deallocate(gflux_mom_loc)
   if(allocated(gflux_mom))           deallocate(gflux_mom)
+  if(allocated(stress_integrated))   deallocate(stress_integrated)
+  if(allocated(stress_integrated_loc)) deallocate(stress_integrated_loc)
+  if(allocated(stress)) then
+     ccl_del_device(stress)
+     deallocate(stress)
+  endif
   if(allocated(recv_status))         deallocate(recv_status)
   if(allocated(source)) then
       ccl_del_device(source)      

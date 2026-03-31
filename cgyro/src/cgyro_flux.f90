@@ -253,6 +253,24 @@ subroutine cgyro_flux
         gflux_loc(:,:,:,:,itor) = gflux_loc(:,:,:,:,itor)/rho**2
         cflux_loc(:,:,:,itor) = cflux_loc(:,:,:,itor)/rho**2
 
+        if (stress_print_flag .eq. 1) then
+           stress_integrated_loc(:,:,:,itor,:) = 0.0
+           iv_loc = 0
+           do iv=nv1,nv2
+              iv_loc = iv_loc+1
+              is = is_v(iv)
+              ix = ix_v(iv)
+              ie = ie_v(iv)
+              dv = w_exi(ie,ix)
+              do ic=1,nc
+                 ir = ir_c(ic)
+                 it = it_c(ic)
+                 stress_integrated_loc(ir,it,is,itor,:) = &
+                      stress_integrated_loc(ir,it,is,itor,:) + stress(ic,iv_loc,itor,:)*dv
+              enddo
+           enddo
+        endif
+
         if (momentum_print_flag == 1) then
            gflux_mom_loc(:,:,:,:,itor) = gflux_mom_loc(:,:,:,:,itor) * (k_theta_base*itor*rho)
            cflux_mom_loc(:,:,:,itor)   = cflux_mom_loc(:,:,:,itor) * (k_theta_base*itor*rho)
@@ -310,6 +328,16 @@ subroutine cgyro_flux
           cflux_mom, &
           size(cflux_mom), &
           MPI_DOUBLE_PRECISION, &
+          MPI_SUM, &
+          NEW_COMM_1, &
+          i_err)
+  endif
+
+  if (stress_print_flag .eq. 1) then
+     call MPI_ALLREDUCE(stress_integrated_loc, &
+          stress_integrated, &
+          size(stress_integrated), &
+          MPI_DOUBLE_COMPLEX, &
           MPI_SUM, &
           NEW_COMM_1, &
           i_err)

@@ -324,6 +324,17 @@ subroutine cgyro_init_manager
      if (nonlinear_flag == 1) then
         call cgyro_nl_dealias_init
 
+        if (stress_print_flag == 1) then
+           allocate(stress(nc,nv_loc,nt1:nt2,n_field))
+           allocate(stress_integrated_loc(n_radial,n_theta,n_species,nt1:nt2,n_field))
+           allocate(stress_integrated(n_radial,n_theta,n_species,nt1:nt2,n_field))
+#if defined(OMPGPU)
+!$omp target enter data map(alloc:stress)
+#elif defined(_OPENACC)
+!$acc enter data create(stress)
+#endif
+        endif
+
         if (nl_single_flag < 2) then
           allocate(fA_nl(n_radial,nt_loc,nsplitA,n_toroidal_procs))
           allocate(g_nl(n_field,n_radial,n_jtheta,n_toroidal))
