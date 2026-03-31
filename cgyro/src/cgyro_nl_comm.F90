@@ -170,9 +170,9 @@ subroutine cgyro_nl_fftw_comm1_async_stress
 
   implicit none
 
-  integer :: ir,it,iv_loc_m,itor,is
+  integer :: ir,it,iv_loc_m,itor
   integer :: iexch0,itor0,isplit0,iexch_base
-  complex :: h_loc,my_psi
+  complex :: h_loc
 
   call timer_lib_in('nl_mem')
 
@@ -184,7 +184,7 @@ subroutine cgyro_nl_fftw_comm1_async_stress
 #elif defined(_OPENACC)
 !$acc parallel loop collapse(4) gang vector independent &
 !$acc&         private(iexch0,itor0,isplit0,iexch_base,h_loc) &
-!$acc&         present(ic_c,cap_h_c,fpackA,fpackB) &
+!$acc&         present(ic_c,h_x,fpackA,fpackB) &
 !$acc&         present(n_theta,nv_loc,nt1,nt2,n_radial,nsplit,nsplitA,nsplitB) default(none)
 #else
 !$omp parallel do collapse(3) &
@@ -194,9 +194,7 @@ subroutine cgyro_nl_fftw_comm1_async_stress
    do iv_loc_m=1,nv_loc
     do itor=nt1,nt2
        do ir=1,n_radial
-          iv = iv_loc+nv1-1
-          is = is_v(iv)
-          h_loc = cap_h_c(ic_c(ir,it),iv_loc_m,itor)
+          h_loc = h_x(ic_c(ir,it),iv_loc_m,itor)
           iexch0 = (iv_loc_m-1) + (it-1)*nv_loc
           itor0 = iexch0/nsplit
           isplit0 = modulo(iexch0,nsplit)
@@ -242,7 +240,7 @@ subroutine cgyro_nl_fftw_comm1_async_stress
 #elif defined(_OPENACC)
 !$acc parallel loop collapse(4) gang vector independent &
 !$acc&         private(iexch0,itor0,isplit0,iexch_base,h_loc) &
-!$acc&         present(ic_c,cap_h_c,fpackA) &
+!$acc&         present(ic_c,h_x,fpackA) &
 !$acc&         present(n_theta,nv_loc,nt1,nt2,n_radial,nsplit,nsplitA) default(none)
 #else
 !$omp parallel do collapse(3) &
@@ -252,7 +250,7 @@ subroutine cgyro_nl_fftw_comm1_async_stress
    do iv_loc_m=1,nv_loc
     do itor=nt1,nt2
        do ir=1,n_radial
-          h_loc = cap_h_c(ic_c(ir,it),iv_loc_m,itor)
+          h_loc = h_x(ic_c(ir,it),iv_loc_m,itor)
           iexch0 = (iv_loc_m-1) + (it-1)*nv_loc
           itor0 = iexch0/nsplit
           isplit0 = modulo(iexch0,nsplit)
@@ -280,7 +278,7 @@ subroutine cgyro_nl_fftw_comm1_async_stress
     enddo
   endif
 
-  endif ! if nspliB>0
+  endif ! if nsplitB>0
 
   call timer_lib_out('nl_mem')
 

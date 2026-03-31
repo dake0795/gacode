@@ -28,13 +28,13 @@ subroutine cgyro_stress
   ! Set up stress for each field
   ! Not sure if this can be with async given the NL calc set up
   do i_field=1, n_field
-     ! Set up first half h_x
+     ! Pack h_x into fpackA (and fpackB if split), send first half asynchronously
      call cgyro_nl_fftw_comm1_async_stress
 
-     ! Set up fields
+     ! Pack single field i_field into gpack, send asynchronously
      call cgyro_nl_fftw_comm2_async_stress(i_field)
 
-     ! Set up second half h_x (if split)
+     ! Send second half of h_x (fpackB) if velocity space is split
      call cgyro_nl_fftw_comm3_async
 
      ! Calculate nonlinear term
