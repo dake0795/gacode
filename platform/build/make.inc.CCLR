@@ -11,7 +11,7 @@ $(info Compiling for CCLR)
 
 # Hardware parameters
 IDENTITY="CCLR"
-CORES_PER_NODE=128
+CORES_PER_NODE=56
 NUMAS_PER_NODE=2
 
 # Compilers
