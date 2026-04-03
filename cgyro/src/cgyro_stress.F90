@@ -18,6 +18,7 @@ subroutine cgyro_stress
   use mpi
   use cgyro_globals
   use cgyro_nl_comm
+  use cgyro_nl
 
   implicit none
 

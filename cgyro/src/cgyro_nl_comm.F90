@@ -1398,7 +1398,7 @@ subroutine cgyro_nl_fftw_comm1_r_stress(itf)
 #elif defined(_OPENACC)
 !$acc parallel loop collapse(4) gang vector independent &
 !$acc&         private(iexch0,itor0,isplit0,iexch_base,ic_loc_m,my_psi) &
-!$acc&         present(ic_c,px,stress,fpackA,fpackB) copyin(psi_mul,zf_scale) &
+!$acc&         present(ic_c,stress,fpackA,fpackB) copyin(psi_mul) &
 !$acc&         present(nt1,nt2,nv_loc,n_theta,n_radial,nsplit,nsplitA,nsplitB) copyin(itf) default(none)
 #else
 !$omp parallel do collapse(2) &
@@ -1409,7 +1409,7 @@ subroutine cgyro_nl_fftw_comm1_r_stress(itf)
     do it=1,n_theta
      do ir=1,n_radial
         ic_loc_m = ic_c(ir,it)
-        if ( (itor == 0) .and. (ir == 1 .or. px(ir) == 0) ) then
+        if ( (itor == 0) .and. (ir == 1 .or. ir == px_zero) ) then
            my_psi = (0.0,0.0)
         else
            iexch0 = (iv_loc_m-1) + (it-1)*nv_loc
@@ -1423,7 +1423,6 @@ subroutine cgyro_nl_fftw_comm1_r_stress(itf)
               my_psi = fpackB(ir,itor-nt1+1,iexch_base+(isplit0-nsplitA))
            endif
         endif
-        if (itor == 0) my_psi = my_psi*zf_scale
         stress(ic_loc_m,iv_loc_m,itor,itf) = psi_mul*my_psi
      enddo
     enddo
@@ -1436,7 +1435,7 @@ subroutine cgyro_nl_fftw_comm1_r_stress(itf)
 #elif defined(_OPENACC)
 !$acc parallel loop collapse(4) gang vector independent &
 !$acc&         private(iexch0,itor0,isplit0,iexch_base,ic_loc_m,my_psi) &
-!$acc&         present(ic_c,px,stress,fpackA) copyin(psi_mul,zf_scale) &
+!$acc&         present(ic_c,stress,fpackA) copyin(psi_mul) &
 !$acc&         present(nt1,nt2,nv_loc,n_theta,n_radial,nsplit,nsplitA) copyin(itf) default(none)
 #else
 !$omp parallel do collapse(2) &
@@ -1447,7 +1446,7 @@ subroutine cgyro_nl_fftw_comm1_r_stress(itf)
     do it=1,n_theta
      do ir=1,n_radial
         ic_loc_m = ic_c(ir,it)
-        if ( (itor == 0) .and. (ir == 1 .or. px(ir) == 0) ) then
+        if ( (itor == 0) .and. (ir == 1 .or. ir == px_zero) ) then
            my_psi = (0.0,0.0)
         else
            iexch0 = (iv_loc_m-1) + (it-1)*nv_loc
@@ -1456,7 +1455,6 @@ subroutine cgyro_nl_fftw_comm1_r_stress(itf)
            iexch_base = 1+itor0*nsplitA
            my_psi = fpackA(ir,itor-nt1+1,iexch_base+isplit0)
         endif
-        if (itor == 0) my_psi = my_psi*zf_scale
         stress(ic_loc_m,iv_loc_m,itor,itf) = psi_mul*my_psi
      enddo
     enddo
