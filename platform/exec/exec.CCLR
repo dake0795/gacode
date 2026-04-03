@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+#
+# SCRIPT:
+#  exec.CCLR
+#
+# FUNCTION:
+#  Parallel execution script for CCLR (UKAEA cluster, Intel MPI)
+#---------------------------------------------------
+
+simdir=${1}
+nmpi=${2}
+exec=${3}
+nomp=${4}
+numa=${5}
+mpinuma=${6}
+
+. $GACODE_ROOT/shared/bin/gacode_mpi_tool
+
+cd $simdir
+
+export OMP_NUM_THREADS=$nomp
+export KMP_AFFINITY=compact
+export KMP_STACKSIZE=400MB
+
+srun --cpu_bind=cores -n $nmpi -c $nomp $exec

@@ -1,0 +1,43 @@
+#---------------------------------------------------
+# CCLR (UKAEA Cluster)
+#
+# SYSTEM INFO:
+# - Intel iimpi/2023a (Intel compilers + Intel MPI)
+# - iimpi/2023a toolchain
+#
+# env.sh loads: iimpi/2023a, HDF5/1.14.0-iimpi-2023a, imkl/2023.1.0
+#---------------------------------------------------
+$(info Compiling for CCLR)
+
+# Hardware parameters
+IDENTITY="CCLR"
+CORES_PER_NODE=128
+NUMAS_PER_NODE=2
+
+# Compilers
+FC     = mpiifort -module ${GACODE_ROOT}/modules -I ${GACODE_ROOT}/modules
+F77    = ${FC}
+
+FOMP   = -qopenmp
+FMATH  = -r8
+FOPT   = -implicitnone -no-prec-div -O3 -fp-model fast=2 -pad -ip -qoverride-limits
+FDEBUG = -shared-intel -implicitnone -check all -check noarg_temp_created -traceback
+
+F2PY  = f2py
+
+# FFTW (gompi-2023a build, ABI-compatible with Intel Fortran)
+FFTW_DIR = /lustre/software/software/FFTW.MPI/3.3.10-gompi-2023a
+FFTW_INC = ${FFTW_DIR}/include
+LMATH = -L${FFTW_DIR}/lib -lfftw3_mpi -lfftw3 -qmkl=cluster
+
+# NetCDF (local install)
+NETCDF_DIR = /lustre/home/yd1639/soft/netcdf-gompi-2023b
+NETCDF     = -L${NETCDF_DIR}/lib -lnetcdff -lnetcdf
+NETCDF_INC = ${NETCDF_DIR}/include
+
+# HDF5 (from iimpi-2023a module)
+HDF5_DIR = /lustre/software/software/HDF5/1.14.0-iimpi-2023a
+HDF5_INC = ${HDF5_DIR}/include
+
+# Archive
+ARCH = ar cr
