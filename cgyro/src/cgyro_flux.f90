@@ -220,6 +220,8 @@ subroutine cgyro_flux
         if (stress_print_flag .eq. 1) then
            stress_integrated_loc(:, :, :, itor, :) = 0.0
            ! stress(kx-theta, vel_coord, ky, phi)
+           ! Apply QN operator: J0 gyroaverage (jvec_c(1,...) = J0 for phi)
+           ! and z_s * n_s species weight, matching the quasineutrality operator.
            iv_loc = 0
            do iv=nv1,nv2
 
@@ -234,7 +236,8 @@ subroutine cgyro_flux
               do ic=1,nc
                  ir = ir_c(ic)
                  it = it_c(ic)
-                 stress_integrated_loc(ir, it, is, itor, :) = stress_integrated_loc(ir, it, is, itor, :) + stress(ic, iv_loc, itor, :) * dv
+                 stress_integrated_loc(ir, it, is, itor, :) = stress_integrated_loc(ir, it, is, itor, :) &
+                      + stress(ic, iv_loc, itor, :) * dv * z(is) * dens2_rot(it,is) * jvec_c(1,ic,iv_loc,itor)
               enddo
            enddo
         endif
